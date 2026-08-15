@@ -22,7 +22,6 @@ let blobUrl = null
 const staticAxios = axios.create({
   headers: {
     'ngrok-skip-browser-warning': 'true',
-    'ngrok-skip-browser-warning': '1',
   },
 })
 
@@ -44,7 +43,7 @@ async function load(url) {
     return
   }
 
-  // URL yang mengandung /static/ → fetch via axios agar header ngrok terkirim
+  // URL yang mengandung /static/ atau ngrok → fetch via axios agar header ngrok terkirim
   const needsProxy = url.includes('/static/') || url.includes('ngrok')
   if (!needsProxy) {
     resolvedSrc.value = url
@@ -63,7 +62,8 @@ async function load(url) {
 
     blobUrl = URL.createObjectURL(data)
     resolvedSrc.value = blobUrl
-  } catch {
+  } catch (err) {
+    console.warn('[ProxyImage] Failed to load image:', url, err)
     resolvedSrc.value = ''
   }
 }
