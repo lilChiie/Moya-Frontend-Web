@@ -1,0 +1,29 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/spa",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://a439-103-164-80-87.ngrok-free.app/api/:path*"
+    },
+    {
+      "source": "/static/:path*",
+      "destination": "https://a439-103-164-80-87.ngrok-free.app/static/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "ngrok-skip-browser-warning",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}
