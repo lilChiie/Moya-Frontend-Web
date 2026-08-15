@@ -7,7 +7,10 @@ import axios from 'axios'
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const baseURL = '/api'
+const baseURL =
+  process.env.DEV || import.meta.env.DEV
+    ? '/api'
+    : (process.env.API_BASE_URL || import.meta.env.VITE_API_BASE_URL || '/api')
 
 const api = axios.create({
   baseURL,

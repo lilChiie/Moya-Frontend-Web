@@ -11,34 +11,26 @@
       "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/:path*"
     },
     {
-      "source": "/((?!api|static|assets|favicon.ico).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/:path*",
       "headers": [
         {
           "key": "ngrok-skip-browser-warning",
           "value": "true"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
     {
-      "source": "/static/(.*)",
+      "source": "/static/:path*",
       "headers": [
         {
           "key": "ngrok-skip-browser-warning",
           "value": "true"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
