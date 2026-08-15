@@ -1,15 +1,15 @@
 $moya-primary: #7D9240;
-$moya-primary-hover: #6a7c36;
-$moya-primary-light: #B4C876;
-$moya-primary-pale: #F0F4E8;
-$moya-secondary: #B4C876;
-$moya-background: #F8F9F4;
+$moya-primary-hover: #687B33;
+$moya-primary-light: #9AB057;
+$moya-primary-pale: #F2F6E9;
+$moya-secondary: #9AB057;
+$moya-background: #F8FAF6;
 $moya-surface: #FFFFFF;
-$moya-text-primary: #2F3327;
-$moya-text-secondary: #5A6050;
-$moya-border: #DDE2D3;
-$moya-error: #D32F2F;
-$moya-success: #388E3C;
+$moya-text-primary: #2C331B;
+$moya-text-secondary: #586043;
+$moya-border: #E2E8D8;
+$moya-error: #EF4444;
+$moya-success: #7D9240;
 
 *,
 *::before,
@@ -53,7 +53,20 @@ img {
   outline: none !important;
 }
 
-/* Font Size Scaling Classes */
+.bg-primary {
+  background-color: #7D9240 !important;
+}
+
+.text-primary {
+  color: #7D9240 !important;
+}
+
+.q-btn--standard.bg-primary,
+.q-btn.bg-primary {
+  background-color: #7D9240 !important;
+  color: #ffffff !important;
+}
+
 .font-scale-standard {
   font-size: 16px;
 }

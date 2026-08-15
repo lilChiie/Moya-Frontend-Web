@@ -37,7 +37,7 @@ export default defineConfig((/* ctx */) => {
         node: 'node20',
       },
 
-      vueRouterMode: 'hash', // available values: 'hash', 'history'
+      vueRouterMode: 'history', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
       // vueOptionsAPI: false,
@@ -81,15 +81,15 @@ export default defineConfig((/* ctx */) => {
       config: {
         brand: {
           primary: '#7D9240',
-          secondary: '#B4C876',
-          accent: '#B4C876',
+          secondary: '#9AB057',
+          accent: '#9AB057',
 
-          dark: '#2F3327',
+          dark: '#2C331B',
 
-          positive: '#5F7A36',
-          negative: '#C85C5C',
-          info: '#B4C876',
-          warning: '#B4C876',
+          positive: '#7D9240',
+          negative: '#EF4444',
+          info: '#3B82F6',
+          warning: '#F59E0B',
         },
       },
 

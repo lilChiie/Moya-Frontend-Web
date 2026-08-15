@@ -1,45 +1,44 @@
 <template>
   <q-page class="q-py-xl q-px-lg bg-grey-2">
     <div class="max-width-container">
-      <div class="row items-center justify-between q-mb-lg">
+      <div class="row items-center justify-between q-mb-sm">
         <div>
           <h1 class="text-h4 text-weight-bold text-grey-9 q-ma-none font-header">
-            Monitoring Laporan Kebersihan
+            Cleanliness Report Monitoring
           </h1>
           <p class="text-subtitle1 text-grey-7 q-mt-xs q-mb-none font-subtitle">
-            Kelola dan pantau status penanganan kebersihan pariwisata Batam
+            Manage and monitor cleanliness status for Batam tourism destinations
           </p>
         </div>
-        
-        <div class="row items-center q-gutter-x-sm">
-          <q-input
-            v-model="filterSearch"
-            placeholder="Cari lokasi..."
-            dense
-            outlined
-            bg-color="white"
-            class="search-input"
-          >
-            <template #prepend>
-              <q-icon name="search" color="grey-6" />
-            </template>
-          </q-input>
+      </div>
+      <div class="row items-center flex justify-between q-mb-md">
+        <q-input
+          v-model="filterSearch"
+          placeholder="Search location..."
+          dense
+          outlined
+          bg-color="white"
+          class="search-input"
+        >
+          <template #prepend>
+            <q-icon name="search" color="grey-6" />
+          </template>
+        </q-input>
 
-          <q-select
-            v-model="filterStatus"
-            :options="statusOptions"
-            dense
-            outlined
-            bg-color="white"
-            style="min-width: 170px;"
-            emit-value
-            map-options
-          >
-            <template #prepend>
-              <q-icon name="filter_list" color="grey-6" />
-            </template>
-          </q-select>
-        </div>
+        <q-select
+          v-model="filterStatus"
+          :options="statusOptions"
+          dense
+          outlined
+          bg-color="white"
+          class="filter-select"
+          emit-value
+          map-options
+        >
+          <template #prepend>
+            <q-icon name="filter_list" color="grey-6" />
+          </template>
+        </q-select>
       </div>
 
       <q-card flat class="table-card q-pa-sm">
@@ -58,16 +57,18 @@
               </div>
             </q-td>
           </template>
-
           <template #body-cell-analisis="props">
             <q-td :props="props">
               <div class="column">
                 <q-chip
                   dense
-                  :class="props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
-                  class="text-weight-bold font-chip q-mb-xs style-fit-content" size="sm"
+                  size="sm"
+                  :class="
+                    props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'
+                  "
+                  class="text-weight-bold font-chip q-mb-xs style-fit-content"
                 >
-                  Skor AI: {{ props.row.aiScore }}
+                  AI Score: {{ props.row.aiScore }}
                 </q-chip>
                 <span class="text-caption text-grey-8 text-weight-medium">
                   {{ props.row.aiAnalysis }}
@@ -78,16 +79,19 @@
 
           <template #body-cell-status="props">
             <q-td :props="props">
-              <q-chip
-                dense
-                size="md"
-                :color="props.row.status === 'Sudah Ditangani' ? 'positive' : 'warning'"
-                text-color="white"
-                class="text-weight-bold q-pa-md"
-                :icon="props.row.status === 'Sudah Ditangani' ? 'check_circle' : 'hourglass_top'"
+              <div
+                :class="[
+                  'status-pill',
+                  props.row.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                ]"
               >
-                {{ props.row.status }}
-              </q-chip>
+                <q-icon
+                  :name="props.row.status === 'Resolved' ? 'check_circle' : 'pending'"
+                  size="16px"
+                  class="q-mr-xs"
+                />
+                <span>{{ props.row.status }}</span>
+              </div>
             </q-td>
           </template>
 
@@ -102,7 +106,7 @@
                   icon="visibility"
                   @click="openDetailModal(props.row)"
                 >
-                  <q-tooltip>Lihat Detail Laporan</q-tooltip>
+                  <q-tooltip>View Report Details</q-tooltip>
                 </q-btn>
 
                 <q-btn
@@ -113,7 +117,7 @@
                   icon="edit"
                   @click="openEditModal(props.row)"
                 >
-                  <q-tooltip>Edit Status Penanganan</q-tooltip>
+                  <q-tooltip>Edit Handling Status</q-tooltip>
                 </q-btn>
               </div>
             </q-td>
@@ -123,57 +127,70 @@
     </div>
 
     <q-dialog v-model="showDetailModal">
-      <q-card style="width: 600px; max-width: 90vw;" class="rounded-borders-lg">
+      <q-card style="width: 600px; max-width: 90vw" class="rounded-borders-lg q-pb-lg">
         <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">
-            Detail Laporan - {{ selectedReport?.location }}
+          <div class="text-subtitle1 text-weight-bold q-pa-sm">
+            Report Details - {{ selectedReport?.location }}
           </div>
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
 
-        <q-card-section class="q-pa-md" v-if="selectedReport">
+        <q-card-section class="q-pa-lg" v-if="selectedReport">
           <div class="modal-img-container q-mb-md">
             <img :src="selectedReport.image" :alt="selectedReport.location" class="modal-img" />
           </div>
 
           <div class="row q-col-gutter-md">
             <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Lokasi Destinasi</div>
+              <div class="text-caption text-grey-7">Destination Location</div>
               <div class="text-subtitle2 text-weight-bold text-grey-9">
                 {{ selectedReport.location }}
               </div>
             </div>
 
             <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Waktu Laporan</div>
+              <div class="text-caption text-grey-7">Report Time</div>
               <div class="text-subtitle2 text-weight-bold text-grey-9">
                 {{ selectedReport.timestamp }}
               </div>
             </div>
 
             <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Hasil Analisis AI</div>
+              <div class="text-caption text-grey-7">AI Analysis Result</div>
               <div class="text-subtitle2 text-weight-bold text-primary">
-                {{ selectedReport.aiAnalysis }} (Skor: {{ selectedReport.aiScore }})
+                {{ selectedReport.aiAnalysis }} (Score: {{ selectedReport.aiScore }})
               </div>
             </div>
 
             <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Status Penanganan</div>
+              <div class="text-caption text-grey-7">Handling Status</div>
               <div>
-                <q-chip
-                  dense
-                  :color="selectedReport.status === 'Sudah Ditangani' ? 'positive' : 'warning'"
-                  text-color="white"
-                  class="text-weight-bold q-px-sm q-mt-xs"
+                <div
+                  :class="[
+                    'status-pill',
+                    selectedReport.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                  ]"
+                  class="q-mt-xs"
                 >
-                  {{ selectedReport.status }}
-                </q-chip>
+                  <q-icon
+                    :name="selectedReport.status === 'Resolved' ? 'check_circle' : 'pending'"
+                    size="16px"
+                    class="q-mr-xs"
+                  />
+                  <span>{{ selectedReport.status }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12" v-if="selectedReport.reporterNotes">
+              <div class="text-caption text-grey-7">Reporter Notes</div>
+              <div class="text-body2 text-grey-8 bg-blue-1 q-pa-sm rounded-borders text-italic" style="border: 1px solid #bfdbfe">
+                "{{ selectedReport.reporterNotes }}"
               </div>
             </div>
 
             <div class="col-12" v-if="selectedReport.notes">
-              <div class="text-caption text-grey-7">Catatan Pengelola</div>
+              <div class="text-caption text-grey-7">Admin Notes</div>
               <div class="text-body2 text-grey-8 bg-grey-2 q-pa-sm rounded-borders">
                 {{ selectedReport.notes }}
               </div>
@@ -182,11 +199,13 @@
         </q-card-section>
 
         <q-card-actions align="right" class="q-pa-md bg-grey-1">
-          <q-btn flat label="Tutup" color="grey-8" v-close-popup />
+          <q-btn flat no-caps label="Close" color="grey-8" v-close-popup />
           <q-btn
             color="primary"
-            label="Ubah Status"
+            label="Change Status"
             icon="edit"
+            no-caps
+            style="border-radius: 12px"
             @click="switchFromDetailToEdit"
           />
         </q-card-actions>
@@ -194,28 +213,26 @@
     </q-dialog>
 
     <q-dialog v-model="showEditModal">
-      <q-card style="width: 480px; max-width: 90vw;" class="rounded-borders-lg">
+      <q-card style="width: 480px; max-width: 90vw" class="rounded-borders-lg q-pb-md">
         <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">
-            Ubah Status Penanganan
-          </div>
+          <div class="text-subtitle1 text-weight-bold">Edit Handling Status</div>
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
 
-        <q-card-section class="q-pa-md" v-if="editingReport">
+        <q-card-section class="q-pa-lg" v-if="editingReport">
           <div class="text-subtitle2 text-grey-9 q-mb-xs">
-            Lokasi: <span class="text-weight-bold">{{ editingReport.location }}</span>
+            Location: <span class="text-weight-bold">{{ editingReport.location }}</span>
           </div>
           <div class="text-caption text-grey-6 q-mb-md">
-            Ubah status laporan menjadi "Sudah Ditangani" jika petugas telah menyelesaikan pembersihan.
+            Update report status to "Resolved" once cleaning is completed by ground staff.
           </div>
 
           <q-form @submit.prevent="saveStatus">
             <div class="q-mb-md">
-              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Status Laporan</div>
+              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Report Status</div>
               <q-select
                 v-model="editForm.status"
-                :options="['Belum Ditangani', 'Sudah Ditangani']"
+                :options="['Pending', 'Resolved']"
                 outlined
                 dense
                 emit-value
@@ -224,40 +241,57 @@
             </div>
 
             <div class="q-mb-md">
-              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Catatan Pengelola (Opsional)</div>
+              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">
+                Admin Notes (Optional)
+              </div>
               <q-input
                 v-model="editForm.notes"
                 type="textarea"
                 outlined
                 rows="3"
-                placeholder="Contoh: Petugas kebersihan telah mengangkut sampah di lokasi pukul 16:00 WIB."
+                placeholder="Example: Cleaning team resolved waste issue at location at 16:00 WIB."
                 dense
               />
             </div>
 
             <div class="row justify-end q-gutter-x-sm q-mt-md">
-              <q-btn flat label="Batal" color="grey-8" v-close-popup />
-              <q-btn type="submit" color="primary" label="Simpan Perubahan" icon="save" />
+              <q-btn flat label="Cancel" no-caps color="grey-8" v-close-popup />
+              <q-btn
+                type="submit"
+                color="primary"
+                no-caps
+                style="border-radius: 12px"
+                label="Save Changes"
+                icon="save"
+              />
             </div>
           </q-form>
         </q-card-section>
       </q-card>
     </q-dialog>
+
+    <StatusDialog
+      v-model="showStatusFeedback"
+      :type="feedbackConfig.type"
+      :title="feedbackConfig.title"
+      :message="feedbackConfig.message"
+    />
   </q-page>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import StatusDialog from 'components/StatusDialog.vue'
 
 import report1Img from 'assets/report1.jpg'
 import report2Img from 'assets/report2.jpg'
 
 const filterSearch = ref('')
-const filterStatus = ref('Semua')
+const filterStatus = ref('All')
 const statusOptions = [
-  { label: 'Semua Status', value: 'Semua' },
-  { label: 'Belum Ditangani', value: 'Belum Ditangani' },
-  { label: 'Sudah Ditangani', value: 'Sudah Ditangani' },
+  { label: 'All Statuses', value: 'All' },
+  { label: 'Pending', value: 'Pending' },
+  { label: 'Resolved', value: 'Resolved' },
 ]
 
 const showDetailModal = ref(false)
@@ -266,14 +300,21 @@ const selectedReport = ref(null)
 const showEditModal = ref(false)
 const editingReport = ref(null)
 const editForm = ref({
-  status: 'Sudah Ditangani',
+  status: 'Resolved',
   notes: '',
+})
+
+const showStatusFeedback = ref(false)
+const feedbackConfig = ref({
+  type: 'success',
+  title: '',
+  message: '',
 })
 
 const columns = [
   {
     name: 'location',
-    label: 'Lokasi',
+    label: 'Location',
     field: 'location',
     align: 'left',
     sortable: true,
@@ -281,33 +322,33 @@ const columns = [
   },
   {
     name: 'foto',
-    label: 'Foto Lokasi',
+    label: 'Location Photo',
     field: 'image',
     align: 'center',
   },
   {
     name: 'analisis',
-    label: 'Analisis AI',
+    label: 'AI Analysis',
     field: 'aiAnalysis',
     align: 'left',
   },
   {
     name: 'timestamp',
-    label: 'Waktu Laporan',
+    label: 'Report Time',
     field: 'timestamp',
     align: 'left',
     sortable: true,
   },
   {
     name: 'status',
-    label: 'Status Penanganan',
+    label: 'Handling Status',
     field: 'status',
     align: 'center',
     sortable: true,
   },
   {
     name: 'aksi',
-    label: 'Aksi Pengelola',
+    label: 'Actions',
     field: 'id',
     align: 'center',
   },
@@ -319,9 +360,10 @@ const reports = ref([
     location: 'Welcome to Batam',
     image: report1Img,
     aiScore: '0.5',
-    aiAnalysis: 'Tumpukan Sampah Plastik & Kemasan',
+    aiAnalysis: 'Plastic & Packaging Waste Accumulation',
     timestamp: '2/8/2026, 17:37:50',
-    status: 'Belum Ditangani',
+    status: 'Pending',
+    reporterNotes: 'Plastic and food packaging waste accumulated near the main landmark entrance after afternoon tourist crowd.',
     notes: '',
   },
   {
@@ -329,9 +371,10 @@ const reports = ref([
     location: 'Pantai Melayu',
     image: report1Img,
     aiScore: '0.5',
-    aiAnalysis: 'Sampah Organik & Plastik di Area Pesisir',
+    aiAnalysis: 'Organic & Plastic Waste in Coastal Area',
     timestamp: '2/8/2026, 15:07:02',
-    status: 'Belum Ditangani',
+    status: 'Pending',
+    reporterNotes: 'Organic waste and plastic bottles left along the beach shoreline area.',
     notes: '',
   },
   {
@@ -339,9 +382,10 @@ const reports = ref([
     location: 'Pantai Batu Hoda',
     image: report1Img,
     aiScore: '0.5',
-    aiAnalysis: 'Penumpukan Sampah Pengunjung',
+    aiAnalysis: 'Accumulation of Visitor Waste',
     timestamp: '2/8/2026, 15:03:53',
-    status: 'Belum Ditangani',
+    status: 'Pending',
+    reporterNotes: 'Visitor trash bins overflowing near the gazebo relaxation area.',
     notes: '',
   },
   {
@@ -349,20 +393,22 @@ const reports = ref([
     location: 'Jembatan Barelang',
     image: report2Img,
     aiScore: '0.1',
-    aiAnalysis: 'Kawasan Bersih & Terawat',
+    aiAnalysis: 'Clean & Well-Maintained Area',
     timestamp: '2/8/2026, 14:52:03',
-    status: 'Sudah Ditangani',
-    notes: 'Pembersihan rutin telah dilakukan oleh tim kebersihan daerah.',
+    status: 'Resolved',
+    reporterNotes: 'Cleanliness check around bridge viewpoint area.',
+    notes: 'Routine cleaning completed by local maintenance team.',
   },
   {
     id: 5,
     location: 'Pantai Nongsa',
     image: report2Img,
     aiScore: '0.1',
-    aiAnalysis: 'Area Pantai Bersih Terjaga',
+    aiAnalysis: 'Clean Coastal Beach Area',
     timestamp: '2/8/2026, 11:20:15',
-    status: 'Sudah Ditangani',
-    notes: 'Kawasan dipastikan bebas sampah.',
+    status: 'Resolved',
+    reporterNotes: 'Morning beach cleanliness patrol inspection.',
+    notes: 'Area verified clean and clear of waste.',
   },
 ])
 
@@ -371,8 +417,7 @@ const filteredReports = computed(() => {
     const matchSearch =
       item.location.toLowerCase().includes(filterSearch.value.toLowerCase()) ||
       item.aiAnalysis.toLowerCase().includes(filterSearch.value.toLowerCase())
-    const matchStatus =
-      filterStatus.value === 'Semua' || item.status === filterStatus.value
+    const matchStatus = filterStatus.value === 'All' || item.status === filterStatus.value
 
     return matchSearch && matchStatus
   })
@@ -406,7 +451,16 @@ const saveStatus = () => {
       reports.value[index].notes = editForm.value.notes
     }
   }
+
+  const reportLoc = editingReport.value?.location || 'The report'
   showEditModal.value = false
+
+  feedbackConfig.value = {
+    type: 'success',
+    title: 'Report Status Updated',
+    message: `Status for "${reportLoc}" has been successfully updated to "${editForm.value.status}".`,
+  }
+  showStatusFeedback.value = true
 }
 </script>
 
@@ -425,12 +479,16 @@ const saveStatus = () => {
   font-size: 0.95rem;
 }
 
-.search-input {
-  width: 240px;
+:deep(.q-field__control) {
+  border-radius: 12px !important;
+}
 
-  :deep(.q-field__control) {
-    border-radius: 12px !important;
-  }
+.search-input {
+  width: 380px;
+}
+
+.filter-select {
+  min-width: 170px;
 }
 
 .table-card {
@@ -480,6 +538,31 @@ const saveStatus = () => {
 
 .rounded-borders-lg {
   border-radius: 16px;
+}
+
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.status-handled {
+  background-color: #f2f6e9;
+  color: #5f702e;
+  border: 1px solid #c8d89c;
+}
+
+.status-pending {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 </style>
 

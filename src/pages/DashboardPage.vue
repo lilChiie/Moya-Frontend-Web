@@ -4,16 +4,16 @@
       <div class="row items-center justify-between q-mb-lg">
         <div>
           <h1 class="text-h4 text-weight-bold text-grey-9 q-ma-none font-header">
-            Selamat datang Admin
+            Welcome, Admin
           </h1>
           <p class="text-subtitle1 text-grey-7 q-mt-xs q-mb-none font-subtitle">
-            Pusat Pemantauan Real-Time & Laporan Kebersihan Pariwisata Batam
+            Batam Tourism Real-Time Cleanliness Monitoring & Report Center
           </p>
         </div>
 
         <div class="kpi-card row items-center justify-between q-pa-md">
           <div class="column justify-center">
-            <span class="kpi-label">Laporan Masuk</span>
+            <span class="kpi-label">Incoming Reports</span>
             <span class="kpi-value">6</span>
           </div>
           <div class="kpi-icon-wrapper flex flex-center">
@@ -32,13 +32,13 @@
           <q-card flat class="dashboard-card q-pa-md fill-height">
             <div class="row items-center justify-between q-mb-xs">
               <div class="row items-center q-gutter-x-sm">
-                <span class="text-h6 text-weight-bold text-grey-9">Tren Laporan Masuk</span>
+                <span class="text-h6 text-weight-bold text-grey-9">Incoming Reports Trend</span>
                 <q-chip
                   dense
                   class="bg-blue-1 text-primary text-weight-bold q-px-sm font-chip"
                   icon="trending_up"
                 >
-                  +100% Tren Meningkat
+                  +100% Upward Trend
                 </q-chip>
               </div>
 
@@ -54,7 +54,7 @@
               </div>
             </div>
 
-            <p class="text-caption text-grey-6 q-mb-md">Fluktuasi volume laporan kebersihan</p>
+            <p class="text-caption text-grey-6 q-mb-md">Fluctuation in cleanliness report volume</p>
 
             <div class="chart-container">
               <apexchart
@@ -70,9 +70,9 @@
         <div class="col-12 col-md-5">
           <q-card flat class="dashboard-card q-pa-md fill-height">
             <div class="row items-center justify-between q-mb-md">
-              <span class="text-h6 text-weight-bold text-grey-9">Laporan Masuk Terbaru</span>
-              <router-link to="/monitoring" class="text-primary text-weight-bold text-caption flex items-center no-underline">
-                Lihat Semua
+              <span class="text-h6 text-weight-bold text-grey-9">Latest Reports</span>
+              <router-link to="/admin/monitoring" class="text-primary text-weight-bold text-caption flex items-center no-underline">
+                View All
                 <q-icon name="chevron_right" size="18px" class="q-ml-xs" />
               </router-link>
             </div>
@@ -87,10 +87,9 @@
                   <div class="img-wrapper">
                     <img :src="item.image" :alt="item.title" class="report-img" />
                   </div>
-
                   <div class="column justify-center">
                     <div class="ai-score-badge q-mb-xs">
-                      Skor AI: {{ item.aiScore }}
+                      AI Score: {{ item.aiScore }}
                     </div>
                     <span class="text-weight-bold text-subtitle2 text-grey-9 leading-tight">
                       {{ item.title }}
@@ -133,12 +132,12 @@ import report2Img from 'assets/report2.jpg'
 
 let map = null
 
-const filterTabs = ['Harian', 'Mingguan', 'Bulanan']
-const activeFilter = ref('Mingguan')
+const filterTabs = ['Daily', 'Weekly', 'Monthly']
+const activeFilter = ref('Weekly')
 
 const chartSeries = ref([
   {
-    name: 'Volume Laporan',
+    name: 'Report Volume',
     data: [0, 0, 0, 0, 0, 0, 6],
   },
 ])
@@ -149,14 +148,14 @@ const chartOptions = ref({
     toolbar: { show: false },
     fontFamily: 'Inter, Roboto, sans-serif',
   },
-  colors: ['#0D7A75'],
+  colors: ['#7D9240'],
   stroke: {
     curve: 'smooth',
     width: 3.5,
   },
   markers: {
     size: 6,
-    colors: ['#0D7A75'],
+    colors: ['#7D9240'],
     strokeColors: '#ffffff',
     strokeWidth: 2.5,
     hover: { size: 8 },
@@ -169,18 +168,18 @@ const chartOptions = ref({
       padding: 4,
       borderRadius: 4,
       borderWidth: 1,
-      borderColor: '#0D7A75',
+      borderColor: '#7D9240',
       opacity: 0.9,
     },
     style: {
       fontSize: '11px',
       fontWeight: 'bold',
-      colors: ['#0D7A75'],
+      colors: ['#7D9240'],
     },
     offsetY: -8,
   },
   xaxis: {
-    categories: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
+    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     axisBorder: { show: false },
     axisTicks: { show: false },
     labels: {
@@ -209,7 +208,7 @@ const recentReports = ref([
     title: 'Bukit Holbung',
     aiScore: '0.5',
     timestamp: '2/8/2026, 17.37.50',
-    status: 'Perlu Perhatian',
+    status: 'Needs Attention',
     statusColor: '#F59E0B',
     image: report1Img,
   },
@@ -217,7 +216,7 @@ const recentReports = ref([
     title: 'Welcome to Batam',
     aiScore: '0.5',
     timestamp: '2/8/2026, 15.07.02',
-    status: 'Perlu Perhatian',
+    status: 'Needs Attention',
     statusColor: '#F59E0B',
     image: report1Img,
   },
@@ -225,7 +224,7 @@ const recentReports = ref([
     title: 'Pantai Batu Hoda',
     aiScore: '0.5',
     timestamp: '2/8/2026, 15.03.53',
-    status: 'Perlu Perhatian',
+    status: 'Needs Attention',
     statusColor: '#F59E0B',
     image: report1Img,
   },
@@ -233,8 +232,8 @@ const recentReports = ref([
     title: 'Jembatan Barelang',
     aiScore: '0.1',
     timestamp: '2/8/2026, 14.52.03',
-    status: 'Aman',
-    statusColor: '#10B981',
+    status: 'Clean',
+    statusColor: '#7D9240',
     image: report2Img,
   },
 ])
@@ -253,35 +252,35 @@ const batamBoundaryCoordinates = [
 const locationMarkers = [
   {
     name: 'Jembatan Barelang',
-    status: 'Aman',
-    color: '#10B981',
+    status: 'Clean',
+    color: '#7D9240',
     lat: 0.9855,
     lng: 104.0415,
   },
   {
     name: 'Pantai Nongsa',
-    status: 'Aman',
-    color: '#10B981',
+    status: 'Clean',
+    color: '#7D9240',
     lat: 1.1895,
     lng: 104.104,
   },
   {
     name: 'Nagoya Hill',
-    status: 'Aman',
-    color: '#10B981',
+    status: 'Clean',
+    color: '#7D9240',
     lat: 1.144,
     lng: 104.015,
   },
   {
     name: 'Pantai Melayu',
-    status: 'Perlu Perhatian',
+    status: 'Needs Attention',
     color: '#F59E0B',
     lat: 0.942,
     lng: 104.062,
   },
   {
     name: 'Welcome to Batam',
-    status: 'Perlu Perhatian',
+    status: 'Needs Attention',
     color: '#F59E0B',
     lat: 1.1275,
     lng: 104.0535,
@@ -355,24 +354,23 @@ onUnmounted(() => {
   font-size: 0.95rem;
 }
 
-/* KPI Card Styling */
 .kpi-card {
-  background-color: #98d7c2;
+  background: linear-gradient(135deg, #7D9240 0%, #5F702E 100%);
   border-radius: 16px;
-  min-width: 200px;
-  box-shadow: 0 4px 15px rgba(152, 215, 194, 0.3);
+  min-width: 210px;
+  box-shadow: 0 6px 20px rgba(125, 146, 64, 0.25);
 }
 
 .kpi-label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .kpi-value {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #ffffff;
   line-height: 1;
 }
 
@@ -380,7 +378,8 @@ onUnmounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background-color: #0d7a75;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
   margin-left: 16px;
 }
 
