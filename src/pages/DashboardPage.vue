@@ -1,17 +1,17 @@
 <template>
-  <q-page class="q-pa-lg bg-grey-2">
+  <q-page class="page-container bg-grey-2">
     <div class="max-width-container">
-      <div class="row items-center justify-between q-mb-lg">
-        <div>
-          <h1 class="text-h4 text-weight-bold text-grey-9 q-ma-none font-header">
+      <div class="row items-center justify-between q-mb-lg header-row">
+        <div class="col-12 col-sm-auto q-mb-sm-res">
+          <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
             Welcome, Admin
           </h1>
-          <p class="text-subtitle1 text-grey-7 q-mt-xs q-mb-none font-subtitle">
+          <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
             Batam Tourism Real-Time Cleanliness Monitoring & Report Center
           </p>
         </div>
 
-        <div class="kpi-card row items-center justify-between q-pa-md">
+        <div class="kpi-card row items-center justify-between q-pa-md col-12 col-sm-auto">
           <div class="column justify-center">
             <span class="kpi-label">Incoming Reports</span>
             <span class="kpi-value">6</span>
@@ -42,7 +42,7 @@
                 </q-chip>
               </div>
 
-              <div class="row q-gutter-x-xs filter-tabs bg-grey-3 q-pa-xs border-radius-sm">
+              <div class="row q-gutter-x-xs filter-tabs bg-grey-3 q-pa-xs border-radius-sm q-mt-xs-res">
                 <button
                   v-for="tab in filterTabs"
                   :key="tab"
@@ -340,6 +340,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.page-container {
+  padding: 2.5rem 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem 0.75rem;
+  }
+}
+
 .max-width-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -348,10 +360,18 @@ onUnmounted(() => {
 .font-header {
   font-size: 1.85rem;
   line-height: 1.2;
+
+  @media (max-width: 600px) {
+    font-size: 1.4rem;
+  }
 }
 
 .font-subtitle {
   font-size: 0.95rem;
+
+  @media (max-width: 600px) {
+    font-size: 0.85rem;
+  }
 }
 
 .kpi-card {
@@ -359,6 +379,11 @@ onUnmounted(() => {
   border-radius: 16px;
   min-width: 210px;
   box-shadow: 0 6px 20px rgba(125, 146, 64, 0.25);
+
+  @media (max-width: 599px) {
+    width: 100%;
+    margin-top: 1rem;
+  }
 }
 
 .kpi-label {
@@ -396,6 +421,10 @@ onUnmounted(() => {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
+
+  @media (max-width: 768px) {
+    height: 280px;
+  }
 }
 
 .dashboard-card {

@@ -14,6 +14,7 @@ const routes = [
       { path: 'destination/add', component: () => import('pages/AddDestinationPage.vue') },
       { path: 'master-data/accessibility', component: () => import('pages/AccessibilityPage.vue') },
       { path: 'master-data/tourism-type', component: () => import('pages/TourismTypePage.vue') },
+      { path: 'master-data/rank', component: () => import('pages/RankPage.vue') },
     ],
   },
 

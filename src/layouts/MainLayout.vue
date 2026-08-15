@@ -159,6 +159,11 @@ const linksList = [
         icon: 'category',
         link: '/admin/master-data/tourism-type',
       },
+      {
+        title: 'User Rank',
+        icon: 'emoji_events',
+        link: '/admin/master-data/rank',
+      },
     ],
   },
 ]

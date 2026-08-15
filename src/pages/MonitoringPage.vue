@@ -1,53 +1,60 @@
 <template>
-  <q-page class="q-py-xl q-px-lg bg-grey-2">
+  <q-page class="page-container bg-grey-2">
     <div class="max-width-container">
       <div class="row items-center justify-between q-mb-sm">
-        <div>
-          <h1 class="text-h4 text-weight-bold text-grey-9 q-ma-none font-header">
+        <div class="col-12 col-md-auto q-mb-sm-res">
+          <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
             Cleanliness Report Monitoring
           </h1>
-          <p class="text-subtitle1 text-grey-7 q-mt-xs q-mb-none font-subtitle">
+          <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
             Manage and monitor cleanliness status for Batam tourism destinations
           </p>
         </div>
       </div>
-      <div class="row items-center flex justify-between q-mb-md">
-        <q-input
-          v-model="filterSearch"
-          placeholder="Search location..."
-          dense
-          outlined
-          bg-color="white"
-          class="search-input"
-        >
-          <template #prepend>
-            <q-icon name="search" color="grey-6" />
-          </template>
-        </q-input>
 
-        <q-select
-          v-model="filterStatus"
-          :options="statusOptions"
-          dense
-          outlined
-          bg-color="white"
-          class="filter-select"
-          emit-value
-          map-options
-        >
-          <template #prepend>
-            <q-icon name="filter_list" color="grey-6" />
-          </template>
-        </q-select>
+      <div class="row items-center justify-between q-col-gutter-sm q-my-md">
+        <div class="col-12 col-sm-7 col-md-5">
+          <q-input
+            v-model="filterSearch"
+            placeholder="Search location..."
+            dense
+            outlined
+            bg-color="white"
+            class="search-input"
+          >
+            <template #prepend>
+              <q-icon name="search" color="grey-6" />
+            </template>
+          </q-input>
+        </div>
+
+        <div class="col-12 col-sm-auto row justify-end">
+          <q-select
+            v-model="filterStatus"
+            :options="statusOptions"
+            dense
+            outlined
+            bg-color="white"
+            class="filter-select"
+            emit-value
+            map-options
+          >
+            <template #prepend>
+              <q-icon name="filter_list" color="grey-6" />
+            </template>
+          </q-select>
+        </div>
       </div>
 
-      <q-card flat class="table-card q-pa-sm">
+      <q-card flat class="table-card q-pa-xs-res">
         <q-table
           :rows="filteredReports"
           :columns="columns"
           row-key="id"
           flat
+          :loading="isLoading"
           class="custom-monitoring-table"
+          :grid="$q.screen.xs"
           :pagination="{ rowsPerPage: 10 }"
         >
           <template #body-cell-foto="props">
@@ -121,6 +128,72 @@
                 </q-btn>
               </div>
             </q-td>
+          </template>
+
+          <template #item="props">
+            <div class="q-pa-xs col-xs-12 col-sm-6">
+              <q-card flat bordered class="q-pa-md rounded-borders-lg bg-white shadow-1">
+                <div class="row items-center justify-between q-mb-sm">
+                  <div
+                    :class="[
+                      'status-pill',
+                      props.row.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                    ]"
+                  >
+                    <q-icon
+                      :name="props.row.status === 'Resolved' ? 'check_circle' : 'pending'"
+                      size="14px"
+                      class="q-mr-xs"
+                    />
+                    <span>{{ props.row.status }}</span>
+                  </div>
+                  <div class="row items-center q-gutter-x-xs">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      color="primary"
+                      icon="visibility"
+                      size="sm"
+                      @click="openDetailModal(props.row)"
+                    />
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      color="orange-9"
+                      icon="edit"
+                      size="sm"
+                      @click="openEditModal(props.row)"
+                    />
+                  </div>
+                </div>
+
+                <div class="row items-center q-gutter-x-sm q-mb-sm">
+                  <div class="table-img-wrapper cursor-pointer" @click="openDetailModal(props.row)">
+                    <img :src="props.row.image" :alt="props.row.location" class="table-img" />
+                  </div>
+                  <div class="column">
+                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{ props.row.location }}</span>
+                    <span class="text-caption text-grey-6" style="font-size: 11px;">{{ props.row.timestamp }}</span>
+                  </div>
+                </div>
+
+                <div class="q-mt-xs">
+                  <q-chip
+                    dense
+                    size="sm"
+                    :class="props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
+                    class="text-weight-bold font-chip q-mb-xs"
+                  >
+                    AI Score: {{ props.row.aiScore }}
+                  </q-chip>
+                  <div class="text-caption text-grey-8 text-weight-medium">
+                    {{ props.row.aiAnalysis }}
+                  </div>
+                </div>
+              </q-card>
+            </div>
           </template>
         </q-table>
       </q-card>
@@ -280,12 +353,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
 
 import report1Img from 'assets/report1.jpg'
-import report2Img from 'assets/report2.jpg'
 
+const isLoading = ref(false)
 const filterSearch = ref('')
 const filterStatus = ref('All')
 const statusOptions = [
@@ -354,63 +428,43 @@ const columns = [
   },
 ]
 
-const reports = ref([
-  {
-    id: 1,
-    location: 'Welcome to Batam',
-    image: report1Img,
-    aiScore: '0.5',
-    aiAnalysis: 'Plastic & Packaging Waste Accumulation',
-    timestamp: '2/8/2026, 17:37:50',
-    status: 'Pending',
-    reporterNotes: 'Plastic and food packaging waste accumulated near the main landmark entrance after afternoon tourist crowd.',
-    notes: '',
-  },
-  {
-    id: 2,
-    location: 'Pantai Melayu',
-    image: report1Img,
-    aiScore: '0.5',
-    aiAnalysis: 'Organic & Plastic Waste in Coastal Area',
-    timestamp: '2/8/2026, 15:07:02',
-    status: 'Pending',
-    reporterNotes: 'Organic waste and plastic bottles left along the beach shoreline area.',
-    notes: '',
-  },
-  {
-    id: 3,
-    location: 'Pantai Batu Hoda',
-    image: report1Img,
-    aiScore: '0.5',
-    aiAnalysis: 'Accumulation of Visitor Waste',
-    timestamp: '2/8/2026, 15:03:53',
-    status: 'Pending',
-    reporterNotes: 'Visitor trash bins overflowing near the gazebo relaxation area.',
-    notes: '',
-  },
-  {
-    id: 4,
-    location: 'Jembatan Barelang',
-    image: report2Img,
-    aiScore: '0.1',
-    aiAnalysis: 'Clean & Well-Maintained Area',
-    timestamp: '2/8/2026, 14:52:03',
-    status: 'Resolved',
-    reporterNotes: 'Cleanliness check around bridge viewpoint area.',
-    notes: 'Routine cleaning completed by local maintenance team.',
-  },
-  {
-    id: 5,
-    location: 'Pantai Nongsa',
-    image: report2Img,
-    aiScore: '0.1',
-    aiAnalysis: 'Clean Coastal Beach Area',
-    timestamp: '2/8/2026, 11:20:15',
-    status: 'Resolved',
-    reporterNotes: 'Morning beach cleanliness patrol inspection.',
-    notes: 'Area verified clean and clear of waste.',
-  },
-])
+const reports = ref([])
+
+async function fetchReports() {
+  isLoading.value = true
+  try {
+    let res
+    try {
+      res = await api.get('/reports/')
+    } catch {
+      res = await api.get('/reports')
+    }
+
+    const rawData = res.data?.data || res.data || []
+    const list = Array.isArray(rawData) ? rawData : []
+
+    reports.value = list.map((item) => ({
+      id: item.id,
+      location: item.destination_name || item.location || item.name || '-',
+      image: item.image_url || item.image || item.photo || report1Img,
+      aiScore: item.ai_score ?? item.aiScore ?? item.score ?? '0',
+      aiAnalysis: item.ai_analysis || item.aiAnalysis || item.analysis || '-',
+      timestamp: item.created_at || item.timestamp || item.reported_at || '-',
+      status: item.status || 'Pending',
+      reporterNotes: item.reporter_notes || item.reporterNotes || item.description || '',
+      notes: item.admin_notes || item.notes || '',
+    }))
+  } catch (err) {
+    console.error('Failed to fetch reports:', err)
+    reports.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchReports()
+})
 
 const filteredReports = computed(() => {
   return reports.value.filter((item) => {
@@ -465,6 +519,18 @@ const saveStatus = () => {
 </script>
 
 <style scoped lang="scss">
+.page-container {
+  padding: 2.5rem 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem 0.75rem;
+  }
+}
+
 .max-width-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -473,10 +539,18 @@ const saveStatus = () => {
 .font-header {
   font-size: 1.85rem;
   line-height: 1.2;
+
+  @media (max-width: 600px) {
+    font-size: 1.4rem;
+  }
 }
 
 .font-subtitle {
   font-size: 0.95rem;
+
+  @media (max-width: 600px) {
+    font-size: 0.85rem;
+  }
 }
 
 :deep(.q-field__control) {
@@ -484,11 +558,17 @@ const saveStatus = () => {
 }
 
 .search-input {
-  width: 380px;
+  width: 100%;
+  max-width: 380px;
 }
 
 .filter-select {
+  width: 100%;
   min-width: 170px;
+
+  @media (max-width: 599px) {
+    margin-top: 0.5rem;
+  }
 }
 
 .table-card {
@@ -496,6 +576,7 @@ const saveStatus = () => {
   background-color: #ffffff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   border: 1px solid #e2e8f0;
+  overflow-x: auto;
 }
 
 .table-img-wrapper {
@@ -539,7 +620,6 @@ const saveStatus = () => {
 .rounded-borders-lg {
   border-radius: 16px;
 }
-
 
 .status-pill {
   display: inline-flex;

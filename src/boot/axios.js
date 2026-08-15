@@ -14,13 +14,21 @@ const api = axios.create({
   },
 })
 
-// Request Interceptor to attach Authorization Bearer Token
+// Request Interceptor to attach Authorization Bearer Token & bypass ngrok warning
 api.interceptors.request.use(
   (config) => {
+    config.headers['ngrok-skip-browser-warning'] = 'true'
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    // When sending FormData, remove Content-Type so browser auto-sets
+    // multipart/form-data with proper boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+
     return config
   },
   (error) => Promise.reject(error)

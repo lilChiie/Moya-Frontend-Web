@@ -1,17 +1,19 @@
 <template>
-  <q-page class="q-py-xl q-px-lg bg-grey-2">
+  <q-page class="page-container bg-grey-2">
     <div class="max-width-container">
       <div class="row items-center justify-between q-mb-sm">
-        <div>
-          <h1 class="text-h4 text-weight-bold text-grey-9 q-ma-none font-header">
+        <div class="col-12 col-md-auto q-mb-sm-res">
+          <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
             Tourism Type Master Data
           </h1>
-          <p class="text-subtitle1 text-grey-7 q-mt-xs q-mb-none font-subtitle">
+          <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
             Manage tourism type categories used across tourism destinations
           </p>
         </div>
+      </div>
 
-        <div class="row items-center justify-between full-width q-my-md">
+      <div class="row items-center justify-between q-col-gutter-sm q-my-md">
+        <div class="col-12 col-sm-7 col-md-5">
           <q-input
             v-model="filterSearch"
             placeholder="Search tourism type..."
@@ -24,20 +26,22 @@
               <q-icon name="search" color="grey-6" />
             </template>
           </q-input>
+        </div>
 
+        <div class="col-12 col-sm-auto row justify-end">
           <q-btn
             color="primary"
             icon="add"
             label="Add Tourism Type"
             no-caps
             style="border-radius: 12px"
-            class="text-weight-bold"
+            class="text-weight-bold add-btn"
             @click="openAddModal"
           />
         </div>
       </div>
 
-      <q-card flat class="table-card q-pa-sm">
+      <q-card flat class="table-card q-pa-xs-res">
         <q-table
           :rows="filteredList"
           :columns="columns"
@@ -45,6 +49,7 @@
           flat
           class="custom-master-table"
           :loading="isLoading"
+          :grid="$q.screen.xs"
           :pagination="{ rowsPerPage: 10 }"
         >
           <template #body-cell-index="props">
@@ -86,12 +91,45 @@
               </div>
             </q-td>
           </template>
+
+          <template #item="props">
+            <div class="q-pa-xs col-xs-12 col-sm-6">
+              <q-card flat bordered class="q-pa-md rounded-borders-lg bg-white shadow-1">
+                <div class="row items-center justify-between q-mb-xs">
+                  <span class="text-caption text-weight-bold text-grey-6">#{{ props.rowIndex + 1 }}</span>
+                  <div class="row items-center q-gutter-x-xs">
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      color="primary"
+                      icon="edit"
+                      size="sm"
+                      @click="openEditModal(props.row)"
+                    />
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      color="negative"
+                      icon="delete"
+                      size="sm"
+                      @click="openDeleteModal(props.row)"
+                    />
+                  </div>
+                </div>
+                <div class="text-subtitle1 text-weight-bold text-grey-9">
+                  {{ props.row.name }}
+                </div>
+              </q-card>
+            </div>
+          </template>
         </q-table>
       </q-card>
     </div>
 
     <q-dialog v-model="showFormModal">
-      <q-card style="width: 440px; max-width: 90vw" class="rounded-borders-lg q-pb-sm">
+      <q-card style="width: 440px; max-width: 92vw" class="rounded-borders-lg q-pb-sm">
         <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
           <div class="text-subtitle1 text-weight-bold">
             {{ isEditing ? 'Edit Tourism Type' : 'Add Tourism Type' }}
@@ -134,34 +172,12 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showDeleteConfirmModal">
-      <q-card style="width: 400px; max-width: 90vw" class="rounded-borders-lg q-pa-md text-center">
-        <div class="column items-center">
-          <div class="delete-icon-wrapper q-mb-md">
-            <q-icon name="warning_amber" size="36px" color="negative" />
-          </div>
-          <h3 class="text-h6 text-weight-bold text-grey-9 q-ma-none q-mb-xs">
-            Confirm Delete
-          </h3>
-          <p class="text-body2 text-grey-7 q-mb-lg">
-            Are you sure you want to delete <span class="text-weight-bold text-grey-9">"{{ selectedItem?.name }}"</span>?
-          </p>
-
-          <div class="row justify-center q-gutter-x-sm full-width">
-            <q-btn flat label="Cancel" no-caps color="grey-8" v-close-popup />
-            <q-btn
-              color="negative"
-              no-caps
-              style="border-radius: 12px"
-              label="Delete"
-              icon="delete"
-              :loading="isDeleting"
-              @click="confirmDelete"
-            />
-          </div>
-        </div>
-      </q-card>
-    </q-dialog>
+    <ConfirmDeleteDialog
+      v-model="showDeleteConfirmModal"
+      :item-name="selectedItem?.name"
+      :loading="isDeleting"
+      @confirm="confirmDelete"
+    />
 
     <StatusDialog
       v-model="showStatusFeedback"
@@ -176,6 +192,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
+import ConfirmDeleteDialog from 'components/ConfirmDeleteDialog.vue'
 
 const filterSearch = ref('')
 
@@ -404,6 +421,18 @@ async function confirmDelete() {
 </script>
 
 <style scoped lang="scss">
+.page-container {
+  padding: 2.5rem 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem 0.75rem;
+  }
+}
+
 .max-width-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -412,10 +441,18 @@ async function confirmDelete() {
 .font-header {
   font-size: 1.85rem;
   line-height: 1.2;
+
+  @media (max-width: 600px) {
+    font-size: 1.4rem;
+  }
 }
 
 .font-subtitle {
   font-size: 0.95rem;
+
+  @media (max-width: 600px) {
+    font-size: 0.85rem;
+  }
 }
 
 :deep(.q-field__control) {
@@ -423,7 +460,14 @@ async function confirmDelete() {
 }
 
 .search-input {
-  width: 460px;
+  width: 100%;
+  max-width: 460px;
+}
+
+.add-btn {
+  @media (max-width: 599px) {
+    width: 100%;
+  }
 }
 
 .table-card {
@@ -431,6 +475,7 @@ async function confirmDelete() {
   background-color: #ffffff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   border: 1px solid #e2e8f0;
+  overflow-x: auto;
 }
 
 .rounded-borders-lg {
