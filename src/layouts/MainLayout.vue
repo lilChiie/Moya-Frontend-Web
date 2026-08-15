@@ -150,7 +150,7 @@ const linksList = [
     icon: 'storage',
     children: [
       {
-        title: 'Accessibility',
+        title: 'Facilities',
         icon: 'accessible',
         link: '/admin/master-data/accessibility',
       },

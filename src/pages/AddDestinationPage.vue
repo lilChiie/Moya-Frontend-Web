@@ -144,19 +144,22 @@
               </div>
 
               <div class="q-mb-sm">
-                <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Accessibility</div>
+                <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Facilities</div>
                 <q-select
                   v-model="form.accessibility"
-                  :options="accessibilityOptions"
+                  :options="accessibilityFilteredOptions"
                   :loading="isLoadingAccessibility"
                   multiple
                   use-chips
+                  use-input
+                  input-debounce="0"
+                  @filter="filterAccessibility"
                   outlined
                   dense
                   bg-color="white"
                   class="rounded-field"
-                  placeholder="Select accessibility options..."
-                  :rules="[(val) => (val && val.length > 0) || 'At least one accessibility option is required']"
+                  placeholder="Type to search & select facilities..."
+                  :rules="[(val) => (val && val.length > 0) || 'At least one facility option is required']"
                   hide-bottom-space
                 />
               </div>
@@ -167,15 +170,18 @@
                 </div>
                 <q-select
                   v-model="form.category"
-                  :options="categoryOptions"
+                  :options="categoryFilteredOptions"
                   :loading="isLoadingCategory"
                   multiple
                   use-chips
+                  use-input
+                  input-debounce="0"
+                  @filter="filterCategory"
                   outlined
                   dense
                   bg-color="white"
                   class="rounded-field"
-                  placeholder="Select tourism categories..."
+                  placeholder="Type to search & select categories..."
                   :rules="[(val) => (val && val.length > 0) || 'At least one category is required']"
                   hide-bottom-space
                 />
@@ -200,6 +206,39 @@
                   ]"
                   hide-bottom-space
                 />
+              </div>
+
+              <div class="row q-col-gutter-xs q-mb-sm">
+                <div class="col-6">
+                  <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">
+                    Opening Time
+                  </div>
+                  <q-input
+                    v-model="form.opening_time"
+                    type="time"
+                    outlined
+                    dense
+                    bg-color="white"
+                    class="rounded-field"
+                    :rules="[(val) => !!val || 'Opening time is required']"
+                    hide-bottom-space
+                  />
+                </div>
+                <div class="col-6">
+                  <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">
+                    Closing Time
+                  </div>
+                  <q-input
+                    v-model="form.closing_time"
+                    type="time"
+                    outlined
+                    dense
+                    bg-color="white"
+                    class="rounded-field"
+                    :rules="[(val) => !!val || 'Closing time is required']"
+                    hide-bottom-space
+                  />
+                </div>
               </div>
 
               <div class="q-mb-md">
@@ -275,6 +314,8 @@ const form = ref({
   accessibility: [],
   category: [],
   ticketPrice: 10000,
+  opening_time: '08:00',
+  closing_time: '17:00',
   photo: null,
 })
 
@@ -303,7 +344,40 @@ const formattedTicketPrice = computed({
 const photoPreview = ref(null)
 
 const accessibilityOptions = ref([])
+const accessibilityFilteredOptions = ref([])
 const categoryOptions = ref([])
+const categoryFilteredOptions = ref([])
+
+function filterAccessibility(val, update) {
+  if (val === '') {
+    update(() => {
+      accessibilityFilteredOptions.value = accessibilityOptions.value
+    })
+    return
+  }
+  update(() => {
+    const needle = val.toLowerCase()
+    accessibilityFilteredOptions.value = accessibilityOptions.value.filter(
+      (v) => v.toLowerCase().includes(needle),
+    )
+  })
+}
+
+function filterCategory(val, update) {
+  if (val === '') {
+    update(() => {
+      categoryFilteredOptions.value = categoryOptions.value
+    })
+    return
+  }
+  update(() => {
+    const needle = val.toLowerCase()
+    categoryFilteredOptions.value = categoryOptions.value.filter(
+      (v) => v.toLowerCase().includes(needle),
+    )
+  })
+}
+
 const isLoadingAccessibility = ref(false)
 const isLoadingCategory = ref(false)
 const isSubmitting = ref(false)
@@ -361,6 +435,7 @@ async function fetchAccessibilityOptions() {
             'Public Restrooms',
             'Information Center',
           ]
+    accessibilityFilteredOptions.value = accessibilityOptions.value
   } catch (error) {
     console.error('Error loading accessibility options:', error)
     accessibilityOptions.value = [
@@ -371,6 +446,7 @@ async function fetchAccessibilityOptions() {
       'Public Restrooms',
       'Information Center',
     ]
+    accessibilityFilteredOptions.value = accessibilityOptions.value
   } finally {
     isLoadingAccessibility.value = false
   }
@@ -413,6 +489,7 @@ async function fetchCategoryOptions() {
             'Culinary Tourism',
             'Recreation & Entertainment',
           ]
+    categoryFilteredOptions.value = categoryOptions.value
   } catch (error) {
     console.error('Error loading category options:', error)
     categoryOptions.value = [
@@ -423,6 +500,7 @@ async function fetchCategoryOptions() {
       'Culinary Tourism',
       'Recreation & Entertainment',
     ]
+    categoryFilteredOptions.value = categoryOptions.value
   } finally {
     isLoadingCategory.value = false
   }
@@ -526,6 +604,9 @@ async function handleSaveDestination() {
     },
   }
 
+  const formattedOpenTime = form.value.opening_time ? `${form.value.opening_time.slice(0, 5)}:00` : '08:00:00'
+  const formattedCloseTime = form.value.closing_time ? `${form.value.closing_time.slice(0, 5)}:00` : '17:00:00'
+
   const formData = new FormData()
   formData.append('name', inputName)
   formData.append('description', form.value.description || '')
@@ -536,6 +617,8 @@ async function handleSaveDestination() {
   formData.append('entrance_fee', String(Number(form.value.ticketPrice) || 0))
   formData.append('ticketPrice', String(Number(form.value.ticketPrice) || 0))
   formData.append('ticket_price', String(Number(form.value.ticketPrice) || 0))
+  formData.append('opening_time', formattedOpenTime)
+  formData.append('closing_time', formattedCloseTime)
 
   const tIds = matchedTourismIds.length > 0 ? matchedTourismIds : [1]
 
@@ -581,6 +664,8 @@ async function handleSaveDestination() {
           latitude: Number(parseFloat(form.value.latitude) || 1.06),
           longitude: Number(parseFloat(form.value.longitude) || 104.04),
           entrance_fee: Number(form.value.ticketPrice) || 0,
+          opening_time: formattedOpenTime,
+          closing_time: formattedCloseTime,
           tourism_id: tIds,
           tourism_type_id: tIds,
           accessibility_id: accIdsArray,

@@ -386,10 +386,62 @@ async function saveForm() {
   }
 }
 
+async function checkIfCategoryInUse(item) {
+  try {
+    let res
+    try {
+      res = await api.get('/destinations/')
+    } catch {
+      res = await api.get('/destinations')
+    }
+    const raw = res.data?.data || res.data || []
+    const list = Array.isArray(raw) ? raw : []
+
+    const targetId = String(item.id)
+    const targetName = String(item.name || '').trim().toLowerCase()
+
+    return list.some((dest) => {
+      const rawTourismIds = []
+      if (Array.isArray(dest.tourism_id)) rawTourismIds.push(...dest.tourism_id)
+      else if (dest.tourism_id !== undefined && dest.tourism_id !== null) rawTourismIds.push(dest.tourism_id)
+
+      if (Array.isArray(dest.tourism_type_id)) rawTourismIds.push(...dest.tourism_type_id)
+      else if (dest.tourism_type_id !== undefined && dest.tourism_type_id !== null) rawTourismIds.push(dest.tourism_type_id)
+
+      const idMatch = rawTourismIds.some((id) => String(id) === targetId)
+      if (idMatch) return true
+
+      const categoriesArr = Array.isArray(dest.categories)
+        ? dest.categories
+        : (dest.category ? String(dest.category).split(',') : [])
+
+      return categoriesArr.some(
+        (catStr) => String(catStr).trim().toLowerCase() === targetName
+      )
+    })
+  } catch (err) {
+    console.error('Error checking category usage in destinations:', err)
+    return false
+  }
+}
+
 async function confirmDelete() {
   if (!selectedItem.value) return
 
   isDeleting.value = true
+
+  const inUse = await checkIfCategoryInUse(selectedItem.value)
+  if (inUse) {
+    isDeleting.value = false
+    showDeleteConfirmModal.value = false
+    feedbackConfig.value = {
+      type: 'warning',
+      title: 'Item In Use (Cannot Delete)',
+      message: `Tourism type "${selectedItem.value.name}" is currently assigned to one or more active destinations and cannot be deleted.`,
+    }
+    showStatusFeedback.value = true
+    return
+  }
 
   try {
     try {
@@ -408,10 +460,14 @@ async function confirmDelete() {
     showStatusFeedback.value = true
   } catch (error) {
     console.error('Error deleting tourism type:', error)
+    showDeleteConfirmModal.value = false
+    const errMsg = error.response?.data?.message || error.message || ''
     feedbackConfig.value = {
       type: 'error',
       title: 'Delete Failed',
-      message: error.response?.data?.message || error.message || 'Failed to delete tourism type from server.',
+      message: errMsg.toLowerCase().includes('use') || errMsg.toLowerCase().includes('foreign') || errMsg.toLowerCase().includes('constraint')
+        ? `Tourism type "${selectedItem.value.name}" is in use by destinations and cannot be deleted.`
+        : errMsg || 'Failed to delete tourism type from server.',
     }
     showStatusFeedback.value = true
   } finally {

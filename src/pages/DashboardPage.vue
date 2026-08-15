@@ -3,9 +3,7 @@
     <div class="max-width-container">
       <div class="row items-center justify-between q-mb-lg header-row">
         <div class="col-12 col-sm-auto q-mb-sm-res">
-          <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
-            Welcome, Admin
-          </h1>
+          <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">Welcome, Admin</h1>
           <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
             Batam Tourism Real-Time Cleanliness Monitoring & Report Center
           </p>
@@ -14,7 +12,7 @@
         <div class="kpi-card row items-center justify-between q-pa-md col-12 col-sm-auto">
           <div class="column justify-center">
             <span class="kpi-label">Incoming Reports</span>
-            <span class="kpi-value">6</span>
+            <span class="kpi-value">{{ incomingReportsCount }}</span>
           </div>
           <div class="kpi-icon-wrapper flex flex-center">
             <q-icon name="show_chart" size="24px" color="white" />
@@ -38,11 +36,13 @@
                   class="bg-blue-1 text-primary text-weight-bold q-px-sm font-chip"
                   icon="trending_up"
                 >
-                  +100% Upward Trend
+                  {{ currentTrendLabel }}
                 </q-chip>
               </div>
 
-              <div class="row q-gutter-x-xs filter-tabs bg-grey-3 q-pa-xs border-radius-sm q-mt-xs-res">
+              <div
+                class="row q-gutter-x-xs filter-tabs bg-grey-3 q-pa-xs border-radius-sm q-mt-xs-res"
+              >
                 <button
                   v-for="tab in filterTabs"
                   :key="tab"
@@ -56,7 +56,10 @@
 
             <p class="text-caption text-grey-6 q-mb-md">Fluctuation in cleanliness report volume</p>
 
-            <div class="chart-container">
+            <div class="chart-container relative-position">
+              <q-inner-loading :showing="isLoadingTrend">
+                <q-spinner-dots size="36px" color="primary" />
+              </q-inner-loading>
               <apexchart
                 type="line"
                 height="280"
@@ -68,10 +71,16 @@
         </div>
 
         <div class="col-12 col-md-5">
-          <q-card flat class="dashboard-card q-pa-md fill-height">
+          <q-card flat class="dashboard-card q-pa-md fill-height relative-position">
+            <q-inner-loading :showing="isLoadingLatest">
+              <q-spinner-dots size="36px" color="primary" />
+            </q-inner-loading>
             <div class="row items-center justify-between q-mb-md">
               <span class="text-h6 text-weight-bold text-grey-9">Latest Reports</span>
-              <router-link to="/admin/monitoring" class="text-primary text-weight-bold text-caption flex items-center no-underline">
+              <router-link
+                to="/admin/monitoring"
+                class="text-primary text-weight-bold text-caption flex items-center no-underline"
+              >
                 View All
                 <q-icon name="chevron_right" size="18px" class="q-ml-xs" />
               </router-link>
@@ -88,29 +97,24 @@
                     <img :src="item.image" :alt="item.title" class="report-img" />
                   </div>
                   <div class="column justify-center">
-                    <div class="ai-score-badge q-mb-xs">
+                    <div
+                      :class="[
+                        'ai-score-badge',
+                        'q-mb-xs',
+                        Number(item.aiScore) >= 0.5
+                          ? 'bg-red-1 text-negative'
+                          : 'bg-green-1 text-positive',
+                      ]"
+                    >
                       AI Score: {{ item.aiScore }}
                     </div>
                     <span class="text-weight-bold text-subtitle2 text-grey-9 leading-tight">
                       {{ item.title }}
                     </span>
-                    <span class="text-caption text-grey-6" style="font-size: 11px;">
+                    <span class="text-caption text-grey-6" style="font-size: 11px">
                       {{ item.timestamp }}
                     </span>
                   </div>
-                </div>
-
-                <div class="row items-center q-gutter-x-xs">
-                  <span
-                    class="status-dot"
-                    :style="{ backgroundColor: item.statusColor }"
-                  ></span>
-                  <span
-                    class="text-weight-bold"
-                    :style="{ color: item.statusColor, fontSize: '12px' }"
-                  >
-                    {{ item.status }}
-                  </span>
                 </div>
               </div>
             </div>
@@ -122,23 +126,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { api } from 'boot/axios'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import apexchart from 'vue3-apexcharts'
 
 import report1Img from 'assets/report1.jpg'
-import report2Img from 'assets/report2.jpg'
 
 let map = null
 
 const filterTabs = ['Daily', 'Weekly', 'Monthly']
-const activeFilter = ref('Weekly')
+const activeFilter = ref('Daily')
+
+const defaultCategories = {
+  Daily: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  Weekly: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+  Monthly: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+}
+
+const currentTrendLabel = ref('')
+const isLoadingTrend = ref(false)
 
 const chartSeries = ref([
   {
     name: 'Report Volume',
-    data: [0, 0, 0, 0, 0, 0, 6],
+    data: [],
   },
 ])
 
@@ -179,7 +192,7 @@ const chartOptions = ref({
     offsetY: -8,
   },
   xaxis: {
-    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    categories: defaultCategories.Daily,
     axisBorder: { show: false },
     axisTicks: { show: false },
     labels: {
@@ -188,7 +201,7 @@ const chartOptions = ref({
   },
   yaxis: {
     min: 0,
-    max: 100,
+    max: 50,
     tickAmount: 4,
     labels: {
       style: { colors: '#94A3B8', fontSize: '11px' },
@@ -203,40 +216,347 @@ const chartOptions = ref({
   },
 })
 
-const recentReports = ref([
-  {
-    title: 'Bukit Holbung',
-    aiScore: '0.5',
-    timestamp: '2/8/2026, 17.37.50',
-    status: 'Needs Attention',
-    statusColor: '#F59E0B',
-    image: report1Img,
+async function fetchTrendData(filterName) {
+  const period = filterName ? filterName.toLowerCase() : 'daily'
+
+  isLoadingTrend.value = true
+  try {
+    let res
+    try {
+      res = await api.get(`/reports/trend?period=${period}`)
+    } catch {
+      try {
+        res = await api.get(`/reports/trend/?period=${period}`)
+      } catch {
+        res = await api.get('/reports/trend/', { params: { period } })
+      }
+    }
+
+    const resData = res.data?.data || res.data || {}
+    let categories = []
+    let dataValues = []
+
+    if (Array.isArray(resData)) {
+      categories = resData
+        .map(
+          (item) =>
+            item.label ||
+            item.day ||
+            item.date ||
+            item.week ||
+            item.month ||
+            item.period ||
+            item.name ||
+            '',
+        )
+        .filter(Boolean)
+      dataValues = resData.map(
+        (item) => item.count ?? item.total ?? item.value ?? item.reports ?? item.volume ?? 0,
+      )
+    } else if (typeof resData === 'object') {
+      categories = resData.categories || resData.labels || resData.dates || resData.days || []
+      dataValues = resData.data || resData.series || resData.counts || resData.values || []
+
+      if (Array.isArray(resData.series) && resData.series.length > 0 && resData.series[0].data) {
+        dataValues = resData.series[0].data
+      }
+    }
+
+    if (categories.length === 0) {
+      categories = defaultCategories[filterName] || defaultCategories.Daily
+    }
+
+    if (dataValues.length === 0) {
+      dataValues = categories.map(() => 0)
+    }
+
+    const maxVal = dataValues.length > 0 ? Math.max(...dataValues, 10) : 10
+    const calculatedMaxY = Math.ceil((maxVal * 1.25) / 10) * 10
+
+    currentTrendLabel.value =
+      resData.trend || resData.trend_label || resData.percentage || `+${period} trend`
+    chartSeries.value = [
+      {
+        name: 'Report Volume',
+        data: dataValues,
+      },
+    ]
+    chartOptions.value = {
+      ...chartOptions.value,
+      xaxis: {
+        ...chartOptions.value.xaxis,
+        categories: categories,
+      },
+      yaxis: {
+        ...chartOptions.value.yaxis,
+        max: calculatedMaxY,
+      },
+    }
+  } catch (err) {
+    console.error(`Failed to fetch trend data for period=${period}:`, err)
+    const fallbackCategories = defaultCategories[filterName] || defaultCategories.Daily
+    chartSeries.value = [{ name: 'Report Volume', data: [] }]
+    chartOptions.value = {
+      ...chartOptions.value,
+      xaxis: { ...chartOptions.value.xaxis, categories: fallbackCategories },
+    }
+  } finally {
+    isLoadingTrend.value = false
+  }
+}
+
+watch(
+  activeFilter,
+  (newFilter) => {
+    fetchTrendData(newFilter)
   },
-  {
-    title: 'Welcome to Batam',
-    aiScore: '0.5',
-    timestamp: '2/8/2026, 15.07.02',
-    status: 'Needs Attention',
-    statusColor: '#F59E0B',
-    image: report1Img,
-  },
-  {
-    title: 'Pantai Batu Hoda',
-    aiScore: '0.5',
-    timestamp: '2/8/2026, 15.03.53',
-    status: 'Needs Attention',
-    statusColor: '#F59E0B',
-    image: report1Img,
-  },
-  {
-    title: 'Jembatan Barelang',
-    aiScore: '0.1',
-    timestamp: '2/8/2026, 14.52.03',
-    status: 'Clean',
-    statusColor: '#7D9240',
-    image: report2Img,
-  },
-])
+  { immediate: true },
+)
+
+const isLoadingLatest = ref(false)
+const recentReports = ref([])
+const destinationList = ref([])
+const incomingReportsCount = ref(0)
+
+async function fetchDestinationsForDashboard() {
+  try {
+    let res
+    try {
+      res = await api.get('/destinations/')
+    } catch {
+      res = await api.get('/destinations')
+    }
+    const raw = res.data?.data || res.data || []
+    destinationList.value = Array.isArray(raw) ? raw : []
+  } catch (e) {
+    console.error('Failed to fetch destinations list for dashboard:', e)
+  }
+}
+
+async function fetchTotalReportsCount() {
+  try {
+    let res
+    try {
+      res = await api.get('/reports/')
+    } catch {
+      res = await api.get('/reports')
+    }
+    const raw = res.data?.data || res.data || []
+    const list = Array.isArray(raw) ? raw : []
+    const count = res.data?.total ?? res.data?.count ?? list.length
+    incomingReportsCount.value = count
+  } catch (e) {
+    console.error('Failed to fetch total reports count:', e)
+  }
+}
+
+function formatDashboardDate(dateStr) {
+  if (!dateStr || dateStr === '-') return '-'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
+  } catch {
+    return dateStr
+  }
+}
+
+function formatDashboardImage(url) {
+  if (!url || typeof url !== 'string') return report1Img
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
+    if (url.includes('ngrok-free.app') && !url.includes('ngrok-skip-browser-warning')) {
+      const sep = url.includes('?') ? '&' : '?'
+      return `${url}${sep}ngrok-skip-browser-warning=true`
+    }
+    return url
+  }
+  const baseURL = api.defaults.baseURL || 'https://a439-103-164-80-87.ngrok-free.app'
+  let origin = ''
+  if (baseURL.startsWith('http://') || baseURL.startsWith('https://')) {
+    try {
+      const parsedUrl = new URL(baseURL)
+      origin = parsedUrl.origin
+    } catch {
+      origin = baseURL.replace(/\/api\/?$/, '').replace(/\/$/, '')
+    }
+  } else {
+    origin = 'https://a439-103-164-80-87.ngrok-free.app'
+  }
+  const path = url.startsWith('/') ? url : `/${url}`
+  const fullUrl = `${origin}${path}`
+  const sep = fullUrl.includes('?') ? '&' : '?'
+  return `${fullUrl}${sep}ngrok-skip-browser-warning=true`
+}
+
+function resolveDashboardLocation(item) {
+  let locationName =
+    item.destination_name || item.destination?.name || item.location || item.name || ''
+
+  if (!locationName && item.destination_id) {
+    const foundDest = destinationList.value.find(
+      (d) => (d.id || d.destination_id) == item.destination_id,
+    )
+    if (foundDest) {
+      locationName = foundDest.name || foundDest.destination_name || foundDest.title || ''
+    }
+  }
+
+  if (!locationName && item.destination_id) {
+    locationName = `Destination #${item.destination_id}`
+  }
+
+  return locationName || 'Tourism Destination'
+}
+
+async function fetchLatestReports() {
+  isLoadingLatest.value = true
+  try {
+    let res
+    try {
+      res = await api.get('/reports/latest')
+    } catch {
+      try {
+        res = await api.get('/reports/latest/')
+      } catch {
+        res = await api.get('/reports/')
+      }
+    }
+
+    const rawData = res.data?.data || res.data || []
+    const list = Array.isArray(rawData) ? rawData : []
+    const totalVal = res.data?.total ?? res.data?.count ?? res.data?.total_reports ?? list.length
+    if (totalVal > 0 && incomingReportsCount.value === 0) {
+      incomingReportsCount.value = totalVal
+    }
+
+    recentReports.value = list.map((item) => {
+      const scoreVal = item.score ?? item.ai_score ?? item.aiScore ?? '0'
+      const statusStr = String(item.status || '').toLowerCase()
+      const isClean = statusStr === 'resolved' || statusStr === 'handled' || statusStr === 'clean'
+
+      return {
+        id: item.id,
+        title: resolveDashboardLocation(item),
+        aiScore: scoreVal,
+        timestamp: formatDashboardDate(
+          item.created_at || item.timestamp || item.reported_at || '-',
+        ),
+        status: isClean ? 'Clean' : 'Needs Attention',
+        statusColor: isClean ? '#7D9240' : '#F59E0B',
+        image: formatDashboardImage(item.image_url || item.image || item.photo),
+      }
+    })
+  } catch (err) {
+    console.error('Failed to fetch latest reports from /api/reports/latest:', err)
+  } finally {
+    isLoadingLatest.value = false
+  }
+}
+
+const isLoadingSpots = ref(false)
+const mapSpots = ref([])
+const mapMarkersLayerGroup = ref(null)
+
+async function fetchSpots() {
+  isLoadingSpots.value = true
+  try {
+    let res
+    try {
+      res = await api.get('/spots/')
+    } catch {
+      try {
+        res = await api.get('/spots')
+      } catch {
+        res = await api.get('/spot')
+      }
+    }
+
+    const rawData = res.data?.data || res.data || []
+    const list = Array.isArray(rawData) ? rawData : []
+
+    mapSpots.value = list.map((item) => {
+      const lat = item.latitude ?? (Array.isArray(item.coords) ? item.coords[0] : 1.06)
+      const lng = item.longitude ?? (Array.isArray(item.coords) ? item.coords[1] : 104.04)
+      const statusRaw = String(item.cleanliness_status || item.status || '').toLowerCase()
+      const laporanCount = Number(item.laporanCount ?? item.laporan_count ?? 0)
+      const isClean =
+        (statusRaw === 'safe' || statusRaw === 'aman' || statusRaw === 'clean') && laporanCount === 0
+
+      const statusLabel = isClean ? 'Clean' : 'Needs Attention'
+      const statusColor = isClean ? '#7D9240' : '#F59E0B'
+
+      return {
+        id: item.id,
+        name: item.name || 'Tourism Spot',
+        lat: Number(lat),
+        lng: Number(lng),
+        status: statusLabel,
+        color: statusColor,
+        laporanCount: laporanCount,
+        image: formatDashboardImage(item.image_url || item.img || item.image),
+        description: item.description || '',
+        score: item.cleanliness_score ?? 0,
+      }
+    })
+  } catch (err) {
+    console.error('Failed to fetch spots from /api/spots:', err)
+    mapSpots.value = []
+  } finally {
+    isLoadingSpots.value = false
+  }
+}
+
+function renderMapSpots() {
+  if (!map) return
+
+  if (mapMarkersLayerGroup.value) {
+    mapMarkersLayerGroup.value.clearLayers()
+  } else {
+    mapMarkersLayerGroup.value = L.layerGroup().addTo(map)
+  }
+
+  const spotsToRender = mapSpots.value.length > 0 ? mapSpots.value : locationMarkers
+
+  const bounds = []
+
+  spotsToRender.forEach((loc) => {
+    if (!loc.lat || !loc.lng || isNaN(loc.lat) || isNaN(loc.lng)) return
+
+    const customIcon = createCustomMarkerIcon(loc.status, loc.name, loc.color)
+    const m = L.marker([loc.lat, loc.lng], { icon: customIcon })
+
+    const imgTag = loc.image
+      ? `<img src="${loc.image}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />`
+      : ''
+
+    m.bindPopup(`
+      <div style="font-family: sans-serif; max-width: 210px; padding: 2px;">
+        ${imgTag}
+        <strong style="font-size: 13px; color: #0f172a; display: block; margin-bottom: 4px;">${loc.name}</strong>
+        <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">
+          Status: <b style="color: ${loc.color};">${loc.status}</b>
+        </div>
+        <div style="font-size: 11px; color: #64748b;">
+          Total Laporan: <b>${loc.laporanCount ?? 0}</b>
+        </div>
+      </div>
+    `)
+
+    m.addTo(mapMarkersLayerGroup.value)
+    bounds.push([loc.lat, loc.lng])
+  })
+
+  if (bounds.length > 0 && mapSpots.value.length > 0) {
+    try {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+    } catch {
+      // ignore
+    }
+  }
+}
 
 const batamBoundaryCoordinates = [
   [1.18, 103.9],
@@ -307,7 +627,12 @@ const createCustomMarkerIcon = (status, name, color) => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchDestinationsForDashboard()
+  await fetchLatestReports()
+  await fetchTotalReportsCount()
+  await fetchSpots()
+
   map = L.map('realtime-map', {
     center: [1.06, 104.04],
     zoom: 11,
@@ -326,10 +651,7 @@ onMounted(() => {
     fillOpacity: 0.05,
   }).addTo(map)
 
-  locationMarkers.forEach((loc) => {
-    const customIcon = createCustomMarkerIcon(loc.status, loc.name, loc.color)
-    L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(map)
-  })
+  renderMapSpots()
 })
 
 onUnmounted(() => {
@@ -375,7 +697,7 @@ onUnmounted(() => {
 }
 
 .kpi-card {
-  background: linear-gradient(135deg, #7D9240 0%, #5F702E 100%);
+  background: linear-gradient(135deg, #7d9240 0%, #5f702e 100%);
   border-radius: 16px;
   min-width: 210px;
   box-shadow: 0 6px 20px rgba(125, 146, 64, 0.25);
@@ -490,8 +812,6 @@ onUnmounted(() => {
 }
 
 .ai-score-badge {
-  background-color: #fee2e2;
-  color: #ef4444;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;

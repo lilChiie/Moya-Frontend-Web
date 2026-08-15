@@ -268,13 +268,19 @@
         </q-card-section>
 
         <q-card-section class="q-pa-lg">
-          <div class="detail-img-container q-mb-md flex flex-center bg-grey-2 shadow-1" style="min-height: 200px">
-            <img
-              v-if="selectedDest.image && isUrl(selectedDest.image)"
-              :src="formatImageUrl(selectedDest.image)"
-              :alt="selectedDest.name"
-              class="detail-img"
-            />
+          <div class="detail-img-container q-mb-md">
+            <template v-if="selectedDest.image && isUrl(selectedDest.image)">
+              <img
+                :src="formatImageUrl(selectedDest.image)"
+                :alt="selectedDest.name"
+                class="detail-img-blur"
+              />
+              <img
+                :src="formatImageUrl(selectedDest.image)"
+                :alt="selectedDest.name"
+                class="detail-img"
+              />
+            </template>
             <div v-else class="column items-center justify-center text-grey-6 q-pa-lg">
               <q-icon name="image_not_supported" size="48px" />
               <span class="text-caption text-weight-bold q-mt-xs">No Photo Available</span>
@@ -307,8 +313,22 @@
             <div class="col-12 col-sm-6">
               <div class="q-pa-sm bg-grey-1 rounded-borders fill-height">
                 <div class="text-caption text-weight-bold text-grey-8 row items-center q-mb-xs">
+                  <q-icon name="schedule" size="16px" color="primary" class="q-mr-xs" />
+                  Operating Hours
+                </div>
+                <div class="text-subtitle2 text-weight-bold text-grey-9 q-mt-xs">
+                  {{ formatOperatingHours(selectedDest.opening_time, selectedDest.closing_time) }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-12 col-sm-6">
+              <div class="q-pa-sm bg-grey-1 rounded-borders fill-height">
+                <div class="text-caption text-weight-bold text-grey-8 row items-center q-mb-xs">
                   <q-icon name="accessible" size="16px" color="primary" class="q-mr-xs" />
-                  Accessibility Options
+                  Facilities
                 </div>
                 <div v-if="selectedDest.accessibilities && selectedDest.accessibilities.length > 0" class="row q-gutter-xs q-mt-xs">
                   <q-chip
@@ -323,20 +343,6 @@
                   </q-chip>
                 </div>
                 <div v-else class="text-grey-6 q-mt-xs">-</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row q-col-gutter-sm q-mb-md">
-            <div class="col-12 col-sm-6">
-              <div class="q-pa-sm bg-grey-1 rounded-borders fill-height">
-                <div class="text-caption text-weight-bold text-grey-8 row items-center q-mb-xs">
-                  <q-icon name="my_location" size="16px" color="primary" class="q-mr-xs" />
-                  Location Coordinates
-                </div>
-                <div class="text-caption text-grey-9 text-weight-bold q-mt-xs" style="font-family: monospace">
-                  {{ selectedDest.latitude }}, {{ selectedDest.longitude }}
-                </div>
               </div>
             </div>
 
@@ -355,6 +361,20 @@
                   >
                     {{ cat }}
                   </q-chip>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-12">
+              <div class="q-pa-sm bg-grey-1 rounded-borders fill-height">
+                <div class="text-caption text-weight-bold text-grey-8 row items-center q-mb-xs">
+                  <q-icon name="my_location" size="16px" color="primary" class="q-mr-xs" />
+                  Location Coordinates
+                </div>
+                <div class="text-caption text-grey-9 text-weight-bold q-mt-xs" style="font-family: monospace">
+                  {{ selectedDest.latitude }}, {{ selectedDest.longitude }}
                 </div>
               </div>
             </div>
@@ -425,17 +445,21 @@
             </div>
 
             <div class="q-mb-sm">
-              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Accessibility Options</div>
+              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Facilities</div>
               <q-select
                 v-model="editForm.accessibilities"
-                :options="accessibilityOptions"
+                :options="accessibilityFilteredOptions"
                 :loading="isLoadingAccessibility"
                 multiple
                 use-chips
+                use-input
+                input-debounce="0"
+                @filter="filterAccessibility"
                 outlined
                 dense
                 bg-color="white"
                 class="rounded-field"
+                placeholder="Type to search & select facilities..."
               />
             </div>
 
@@ -443,15 +467,44 @@
               <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Categories</div>
               <q-select
                 v-model="editForm.categories"
-                :options="categoryOptions"
+                :options="categoryFilteredOptions"
                 :loading="isLoadingCategory"
                 multiple
                 use-chips
+                use-input
+                input-debounce="0"
+                @filter="filterCategory"
                 outlined
                 dense
                 bg-color="white"
                 class="rounded-field"
+                placeholder="Type to search & select categories..."
               />
+            </div>
+
+            <div class="row q-col-gutter-xs q-mb-sm">
+              <div class="col-6">
+                <div class="text-caption text-grey-8 text-weight-bold q-mb-xs">Opening Time (Jam Buka)</div>
+                <q-input
+                  v-model="editForm.opening_time"
+                  type="time"
+                  outlined
+                  dense
+                  bg-color="white"
+                  class="rounded-field"
+                />
+              </div>
+              <div class="col-6">
+                <div class="text-caption text-grey-8 text-weight-bold q-mb-xs">Closing Time (Jam Tutup)</div>
+                <q-input
+                  v-model="editForm.closing_time"
+                  type="time"
+                  outlined
+                  dense
+                  bg-color="white"
+                  class="rounded-field"
+                />
+              </div>
             </div>
 
             <div class="row q-col-gutter-xs q-mb-sm">
@@ -584,7 +637,40 @@ const editFormDisplayTicketPrice = computed({
 })
 
 const accessibilityOptions = ref([])
+const accessibilityFilteredOptions = ref([])
 const categoryOptions = ref([])
+const categoryFilteredOptions = ref([])
+
+function filterAccessibility(val, update) {
+  if (val === '') {
+    update(() => {
+      accessibilityFilteredOptions.value = accessibilityOptions.value
+    })
+    return
+  }
+  update(() => {
+    const needle = val.toLowerCase()
+    accessibilityFilteredOptions.value = accessibilityOptions.value.filter((v) =>
+      v.toLowerCase().includes(needle)
+    )
+  })
+}
+
+function filterCategory(val, update) {
+  if (val === '') {
+    update(() => {
+      categoryFilteredOptions.value = categoryOptions.value
+    })
+    return
+  }
+  update(() => {
+    const needle = val.toLowerCase()
+    categoryFilteredOptions.value = categoryOptions.value.filter((v) =>
+      v.toLowerCase().includes(needle)
+    )
+  })
+}
+
 const isLoadingAccessibility = ref(false)
 const isLoadingCategory = ref(false)
 const rawAccessibilityList = ref([])
@@ -617,6 +703,7 @@ async function fetchAccessibilityOptions() {
       'Public Restrooms',
       'Information Center',
     ]
+    accessibilityFilteredOptions.value = accessibilityOptions.value
   } catch (error) {
     console.error('Error loading accessibility options:', error)
     accessibilityOptions.value = [
@@ -627,6 +714,7 @@ async function fetchAccessibilityOptions() {
       'Public Restrooms',
       'Information Center',
     ]
+    accessibilityFilteredOptions.value = accessibilityOptions.value
   } finally {
     isLoadingAccessibility.value = false
   }
@@ -662,6 +750,7 @@ async function fetchCategoryOptions() {
       'Culinary Tourism',
       'Recreation & Entertainment',
     ]
+    categoryFilteredOptions.value = categoryOptions.value
   } catch (error) {
     console.error('Error loading category options:', error)
     categoryOptions.value = [
@@ -672,6 +761,7 @@ async function fetchCategoryOptions() {
       'Culinary Tourism',
       'Recreation & Entertainment',
     ]
+    categoryFilteredOptions.value = categoryOptions.value
   } finally {
     isLoadingCategory.value = false
   }
@@ -721,7 +811,7 @@ const columns = [
   },
   {
     name: 'accessibility',
-    label: 'Accessibility',
+    label: 'Facilities',
     field: 'accessibilities',
     align: 'center',
   },
@@ -850,6 +940,8 @@ async function fetchDestinations() {
         entrance_fee: ticketVal,
         latitude: item.latitude || item.lat || '1.060000',
         longitude: item.longitude || item.lng || '104.040000',
+        opening_time: item.opening_time || item.open_time || '08:00:00',
+        closing_time: item.closing_time || item.close_time || '17:00:00',
         raw: item,
       }
     })
@@ -861,6 +953,13 @@ async function fetchDestinations() {
   } finally {
     isLoadingDestinations.value = false
   }
+}
+
+function formatOperatingHours(openTime, closeTime) {
+  if (!openTime && !closeTime) return '08:00 - 17:00 WIB'
+  const cleanOpen = String(openTime || '08:00').slice(0, 5)
+  const cleanClose = String(closeTime || '17:00').slice(0, 5)
+  return `${cleanOpen} - ${cleanClose} WIB`
 }
 
 function isUrl(str) {
@@ -911,6 +1010,8 @@ function openEditModal(dest) {
     ticketPrice: dest.ticketPrice !== undefined ? dest.ticketPrice : dest.entrance_fee,
     latitude: dest.latitude,
     longitude: dest.longitude,
+    opening_time: String(dest.opening_time || '08:00:00').slice(0, 5),
+    closing_time: String(dest.closing_time || '17:00:00').slice(0, 5),
     tourism_id: dest.tourism_id || 1,
     image: dest.image || '',
     photoFile: null,
@@ -950,9 +1051,14 @@ async function saveEditDestination() {
   const numTicket = Number(editForm.value.ticketPrice) || 0
   const id = editForm.value.id
 
+  const formattedOpenTime = editForm.value.opening_time ? `${editForm.value.opening_time.slice(0, 5)}:00` : '08:00:00'
+  const formattedCloseTime = editForm.value.closing_time ? `${editForm.value.closing_time.slice(0, 5)}:00` : '17:00:00'
+
   const formData = new FormData()
   formData.append('name', editForm.value.name)
   formData.append('description', editForm.value.description || '')
+  formData.append('opening_time', formattedOpenTime)
+  formData.append('closing_time', formattedCloseTime)
 
   formData.append('tourism_id', JSON.stringify(tourismIdsArray))
   formData.append('tourism_type_id', JSON.stringify(tourismIdsArray))
@@ -1028,6 +1134,8 @@ async function saveEditDestination() {
     destinations.value[idx].ticketPrice = numTicket
     destinations.value[idx].latitude = editForm.value.latitude
     destinations.value[idx].longitude = editForm.value.longitude
+    destinations.value[idx].opening_time = formattedOpenTime
+    destinations.value[idx].closing_time = formattedCloseTime
     if (newImg) {
       destinations.value[idx].image = newImg
     }
@@ -1179,16 +1287,37 @@ async function confirmDelete() {
 
 .detail-img-container {
   width: 100%;
-  max-height: 240px;
-  border-radius: 12px;
+  height: 300px;
+  border-radius: 14px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
+  background-color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
-.detail-img {
+.detail-img-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: blur(20px) brightness(0.5);
+  transform: scale(1.15);
+  pointer-events: none;
+}
+
+.detail-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
 }
 
 .rounded-borders-lg {

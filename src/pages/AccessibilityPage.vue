@@ -4,10 +4,10 @@
       <div class="row items-center justify-between q-mb-sm">
         <div class="col-12 col-md-auto q-mb-sm-res">
           <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
-            Accessibility Master Data
+            Facilities Master Data
           </h1>
           <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
-            Manage accessibility options used across tourism destinations
+            Manage facility options used across tourism destinations
           </p>
         </div>
       </div>
@@ -16,7 +16,7 @@
         <div class="col-12 col-sm-7 col-md-5">
           <q-input
             v-model="filterSearch"
-            placeholder="Search accessibility..."
+            placeholder="Search facilities..."
             dense
             outlined
             bg-color="white"
@@ -32,7 +32,7 @@
           <q-btn
             color="primary"
             icon="add"
-            label="Add Accessibility"
+            label="Add Facility"
             no-caps
             style="border-radius: 12px"
             class="text-weight-bold add-btn"
@@ -75,7 +75,7 @@
                   icon="edit"
                   @click="openEditModal(props.row)"
                 >
-                  <q-tooltip>Edit Accessibility</q-tooltip>
+                  <q-tooltip>Edit Facility</q-tooltip>
                 </q-btn>
 
                 <q-btn
@@ -86,7 +86,7 @@
                   icon="delete"
                   @click="openDeleteModal(props.row)"
                 >
-                  <q-tooltip>Delete Accessibility</q-tooltip>
+                  <q-tooltip>Delete Facility</q-tooltip>
                 </q-btn>
               </div>
             </q-td>
@@ -118,7 +118,7 @@
                     />
                   </div>
                 </div>
-                <div class="text-subtitle1 text-weight-bold text-grey-9">
+                <div class="text-subtitle2 text-weight-bold text-grey-9 q-mb-xs">
                   {{ props.row.name }}
                 </div>
               </q-card>
@@ -129,10 +129,10 @@
     </div>
 
     <q-dialog v-model="showFormModal">
-      <q-card style="width: 440px; max-width: 92vw" class="rounded-borders-lg q-pb-sm">
+      <q-card style="width: 480px; max-width: 92vw" class="rounded-borders-lg q-pb-md">
         <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
           <div class="text-subtitle1 text-weight-bold">
-            {{ isEditing ? 'Edit Accessibility' : 'Add Accessibility' }}
+            {{ isEditing ? 'Edit Facility' : 'Add Facility' }}
           </div>
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
@@ -141,7 +141,7 @@
           <q-form @submit.prevent="saveForm">
             <div class="q-mb-md">
               <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">
-                Accessibility Name
+                Facility Name
               </div>
               <q-input
                 v-model="form.name"
@@ -385,10 +385,62 @@ async function saveForm() {
   }
 }
 
+async function checkIfFacilityInUse(item) {
+  try {
+    let res
+    try {
+      res = await api.get('/destinations/')
+    } catch {
+      res = await api.get('/destinations')
+    }
+    const raw = res.data?.data || res.data || []
+    const list = Array.isArray(raw) ? raw : []
+
+    const targetId = String(item.id)
+    const targetName = String(item.name || '').trim().toLowerCase()
+
+    return list.some((dest) => {
+      const rawAccIds = []
+      if (Array.isArray(dest.accessibility_id)) rawAccIds.push(...dest.accessibility_id)
+      else if (dest.accessibility_id !== undefined && dest.accessibility_id !== null) rawAccIds.push(dest.accessibility_id)
+
+      if (Array.isArray(dest.access_id)) rawAccIds.push(...dest.access_id)
+      else if (dest.access_id !== undefined && dest.access_id !== null) rawAccIds.push(dest.access_id)
+
+      const idMatch = rawAccIds.some((id) => String(id) === targetId)
+      if (idMatch) return true
+
+      const accessibilitiesArr = Array.isArray(dest.accessibilities)
+        ? dest.accessibilities
+        : (dest.accessibility ? String(dest.accessibility).split(',') : [])
+
+      return accessibilitiesArr.some(
+        (accStr) => String(accStr).trim().toLowerCase() === targetName
+      )
+    })
+  } catch (err) {
+    console.error('Error checking facility usage in destinations:', err)
+    return false
+  }
+}
+
 async function confirmDelete() {
   if (!selectedItem.value) return
 
   isDeleting.value = true
+
+  const inUse = await checkIfFacilityInUse(selectedItem.value)
+  if (inUse) {
+    isDeleting.value = false
+    showDeleteConfirmModal.value = false
+    feedbackConfig.value = {
+      type: 'warning',
+      title: 'Item In Use (Cannot Delete)',
+      message: `Facility "${selectedItem.value.name}" is currently assigned to one or more active destinations and cannot be deleted.`,
+    }
+    showStatusFeedback.value = true
+    return
+  }
 
   try {
     try {
@@ -400,17 +452,21 @@ async function confirmDelete() {
 
     feedbackConfig.value = {
       type: 'success',
-      title: 'Accessibility Deleted',
-      message: `Accessibility option "${selectedItem.value.name}" has been deleted successfully.`,
+      title: 'Facility Deleted',
+      message: `Facility "${selectedItem.value.name}" has been deleted successfully.`,
     }
     await fetchAccessibilityOptions()
     showStatusFeedback.value = true
   } catch (error) {
-    console.error('Error deleting accessibility option:', error)
+    console.error('Error deleting facility:', error)
+    showDeleteConfirmModal.value = false
+    const errMsg = error.response?.data?.message || error.message || ''
     feedbackConfig.value = {
       type: 'error',
       title: 'Delete Failed',
-      message: error.response?.data?.message || error.message || 'Failed to delete accessibility option from server.',
+      message: errMsg.toLowerCase().includes('use') || errMsg.toLowerCase().includes('foreign') || errMsg.toLowerCase().includes('constraint')
+        ? `Facility "${selectedItem.value.name}" is in use by destinations and cannot be deleted.`
+        : errMsg || 'Failed to delete facility option from server.',
     }
     showStatusFeedback.value = true
   } finally {

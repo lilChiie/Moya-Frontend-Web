@@ -174,8 +174,12 @@
                     <img :src="props.row.image" :alt="props.row.location" class="table-img" />
                   </div>
                   <div class="column">
-                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{ props.row.location }}</span>
-                    <span class="text-caption text-grey-6" style="font-size: 11px;">{{ props.row.timestamp }}</span>
+                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{
+                      props.row.location
+                    }}</span>
+                    <span class="text-caption text-grey-6" style="font-size: 11px">{{
+                      props.row.timestamp
+                    }}</span>
                   </div>
                 </div>
 
@@ -183,7 +187,11 @@
                   <q-chip
                     dense
                     size="sm"
-                    :class="props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
+                    :class="
+                      props.row.aiScore >= 0.5
+                        ? 'bg-red-1 text-negative'
+                        : 'bg-green-1 text-positive'
+                    "
                     class="text-weight-bold font-chip q-mb-xs"
                   >
                     AI Score: {{ props.row.aiScore }}
@@ -208,8 +216,12 @@
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
 
-        <q-card-section class="q-pa-lg" v-if="selectedReport">
+        <q-card-section class="q-pa-lg relative-position" v-if="selectedReport">
+          <q-inner-loading :showing="isLoadingDetail">
+            <q-spinner-dots size="40px" color="primary" />
+          </q-inner-loading>
           <div class="modal-img-container q-mb-md">
+            <img :src="selectedReport.image" :alt="selectedReport.location" class="modal-img-blur" />
             <img :src="selectedReport.image" :alt="selectedReport.location" class="modal-img" />
           </div>
 
@@ -257,7 +269,10 @@
 
             <div class="col-12" v-if="selectedReport.reporterNotes">
               <div class="text-caption text-grey-7">Reporter Notes</div>
-              <div class="text-body2 text-grey-8 bg-blue-1 q-pa-sm rounded-borders text-italic" style="border: 1px solid #bfdbfe">
+              <div
+                class="text-body2 text-grey-8 bg-blue-1 q-pa-sm rounded-borders text-italic"
+                style="border: 1px solid #bfdbfe"
+              >
                 "{{ selectedReport.reporterNotes }}"
               </div>
             </div>
@@ -336,6 +351,7 @@
                 style="border-radius: 12px"
                 label="Save Changes"
                 icon="save"
+                :loading="isSubmittingEditStatus"
               />
             </div>
           </q-form>
@@ -429,6 +445,119 @@ const columns = [
 ]
 
 const reports = ref([])
+const destinationList = ref([])
+
+async function fetchDestinations() {
+  try {
+    let res
+    try {
+      res = await api.get('/destinations/')
+    } catch {
+      res = await api.get('/destinations')
+    }
+    const raw = res.data?.data || res.data || []
+    destinationList.value = Array.isArray(raw) ? raw : []
+  } catch (e) {
+    console.error('Failed to fetch destinations list in MonitoringPage:', e)
+  }
+}
+
+function formatReportImage(url) {
+  if (!url || typeof url !== 'string') return report1Img
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
+    if (url.includes('ngrok-free.app') && !url.includes('ngrok-skip-browser-warning')) {
+      const sep = url.includes('?') ? '&' : '?'
+      return `${url}${sep}ngrok-skip-browser-warning=true`
+    }
+    return url
+  }
+  const baseURL = api.defaults.baseURL || 'https://a439-103-164-80-87.ngrok-free.app'
+  let origin = ''
+  if (baseURL.startsWith('http://') || baseURL.startsWith('https://')) {
+    try {
+      const parsedUrl = new URL(baseURL)
+      origin = parsedUrl.origin
+    } catch {
+      origin = baseURL.replace(/\/api\/?$/, '').replace(/\/$/, '')
+    }
+  } else {
+    origin = 'https://a439-103-164-80-87.ngrok-free.app'
+  }
+  const path = url.startsWith('/') ? url : `/${url}`
+  const fullUrl = `${origin}${path}`
+  const sep = fullUrl.includes('?') ? '&' : '?'
+  return `${fullUrl}${sep}ngrok-skip-browser-warning=true`
+}
+
+function formatStatus(st) {
+  if (!st) return 'Pending'
+  const str = String(st).toLowerCase()
+  if (str === 'resolved' || str === 'handled' || str === 'clean') return 'Resolved'
+  return 'Pending'
+}
+
+function resolveLocationName(item) {
+  let locationName = item.destination_name || item.destination?.name || item.location || item.name || ''
+
+  if (!locationName && item.destination_id) {
+    const foundDest = destinationList.value.find(
+      (d) => (d.id || d.destination_id) == item.destination_id,
+    )
+    if (foundDest) {
+      locationName = foundDest.name || foundDest.destination_name || foundDest.title || ''
+    }
+  }
+
+  if (!locationName && item.destination_id) {
+    locationName = `Destination #${item.destination_id}`
+  }
+
+  return locationName || '-'
+}
+
+function formatReportDate(dateStr) {
+  if (!dateStr || dateStr === '-') return '-'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
+  } catch {
+    return dateStr
+  }
+}
+
+function mapReportItem(item) {
+  const scoreVal = item.score ?? item.ai_score ?? item.aiScore ?? 0
+  const countVal = item.detected_count ?? item.detectedCount
+  let aiText = item.ai_analysis || item.aiAnalysis || item.analysis || ''
+  if (!aiText) {
+    if (countVal !== undefined && countVal !== null) {
+      aiText = countVal > 0 ? `${countVal} waste objects detected` : 'No waste detected (Clean)'
+    } else {
+      aiText = Number(scoreVal) >= 0.5 ? 'Dirty area detected' : 'Clean area'
+    }
+  }
+
+  const rawDate = item.created_at || item.timestamp || item.reported_at || '-'
+
+  return {
+    id: item.id,
+    destination_id: item.destination_id,
+    user_id: item.user_id,
+    location: resolveLocationName(item),
+    image: formatReportImage(item.image_url || item.image || item.photo),
+    aiScore: scoreVal,
+    aiAnalysis: aiText,
+    timestamp: formatReportDate(rawDate),
+    status: formatStatus(item.status),
+    reporterNotes: item.user_notes || item.reporter_notes || item.reporterNotes || item.description || '',
+    notes: item.admin_notes || item.notes || '',
+    raw: item,
+  }
+}
 
 async function fetchReports() {
   isLoading.value = true
@@ -443,17 +572,7 @@ async function fetchReports() {
     const rawData = res.data?.data || res.data || []
     const list = Array.isArray(rawData) ? rawData : []
 
-    reports.value = list.map((item) => ({
-      id: item.id,
-      location: item.destination_name || item.location || item.name || '-',
-      image: item.image_url || item.image || item.photo || report1Img,
-      aiScore: item.ai_score ?? item.aiScore ?? item.score ?? '0',
-      aiAnalysis: item.ai_analysis || item.aiAnalysis || item.analysis || '-',
-      timestamp: item.created_at || item.timestamp || item.reported_at || '-',
-      status: item.status || 'Pending',
-      reporterNotes: item.reporter_notes || item.reporterNotes || item.description || '',
-      notes: item.admin_notes || item.notes || '',
-    }))
+    reports.value = list.map((item) => mapReportItem(item))
   } catch (err) {
     console.error('Failed to fetch reports:', err)
     reports.value = []
@@ -462,8 +581,9 @@ async function fetchReports() {
   }
 }
 
-onMounted(() => {
-  fetchReports()
+onMounted(async () => {
+  await fetchDestinations()
+  await fetchReports()
 })
 
 const filteredReports = computed(() => {
@@ -477,9 +597,36 @@ const filteredReports = computed(() => {
   })
 })
 
-const openDetailModal = (report) => {
+const isLoadingDetail = ref(false)
+
+const openDetailModal = async (report) => {
   selectedReport.value = report
   showDetailModal.value = true
+  isLoadingDetail.value = true
+
+  const reportId = report.id
+  try {
+    let res
+    try {
+      res = await api.get(`/reports/${reportId}`)
+    } catch {
+      res = await api.get(`/reports/${reportId}/`)
+    }
+
+    const detail = res.data?.data || res.data || {}
+    if (detail && typeof detail === 'object') {
+      const mapped = mapReportItem({ ...report.raw, ...detail })
+      selectedReport.value = {
+        ...report,
+        ...mapped,
+        location: mapped.location !== '-' ? mapped.location : report.location,
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to fetch report detail for ID ${reportId}:`, err)
+  } finally {
+    isLoadingDetail.value = false
+  }
 }
 
 const openEditModal = (report) => {
@@ -497,22 +644,76 @@ const switchFromDetailToEdit = () => {
   }
 }
 
-const saveStatus = () => {
-  if (editingReport.value) {
-    const index = reports.value.findIndex((r) => r.id === editingReport.value.id)
-    if (index !== -1) {
-      reports.value[index].status = editForm.value.status
-      reports.value[index].notes = editForm.value.notes
+const isSubmittingEditStatus = ref(false)
+
+const saveStatus = async () => {
+  if (!editingReport.value) return
+  isSubmittingEditStatus.value = true
+
+  const reportId = editingReport.value.id
+  const targetStatus = editForm.value.status
+  const targetNotes = editForm.value.notes || ''
+
+  const payload = {
+    status: targetStatus.toLowerCase(),
+    admin_notes: targetNotes,
+    notes: targetNotes,
+  }
+
+  const reqConfig = {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+    },
+  }
+
+  let apiSuccess = false
+  let lastError = null
+
+  try {
+    try {
+      await api.put(`/reports/${reportId}`, payload, reqConfig)
+      apiSuccess = true
+    } catch {
+      try {
+        await api.put(`/reports/${reportId}/`, payload, reqConfig)
+        apiSuccess = true
+      } catch (e) {
+        lastError = e
+      }
     }
+  } catch (err) {
+    lastError = err
+  }
+
+  isSubmittingEditStatus.value = false
+
+  const index = reports.value.findIndex((r) => r.id === reportId)
+  if (index !== -1) {
+    reports.value[index].status = targetStatus
+    reports.value[index].notes = targetNotes
+  }
+  if (selectedReport.value && selectedReport.value.id === reportId) {
+    selectedReport.value.status = targetStatus
+    selectedReport.value.notes = targetNotes
   }
 
   const reportLoc = editingReport.value?.location || 'The report'
   showEditModal.value = false
 
-  feedbackConfig.value = {
-    type: 'success',
-    title: 'Report Status Updated',
-    message: `Status for "${reportLoc}" has been successfully updated to "${editForm.value.status}".`,
+  if (apiSuccess) {
+    feedbackConfig.value = {
+      type: 'success',
+      title: 'Report Status Updated',
+      message: `Status for "${reportLoc}" has been successfully updated to "${targetStatus}".`,
+    }
+  } else {
+    console.error('Error updating report status on server:', lastError)
+    const errStatus = lastError?.response?.status ? ` (HTTP ${lastError.response.status})` : ''
+    feedbackConfig.value = {
+      type: 'error',
+      title: 'Failed to Update Status (Server Error)',
+      message: `Gagal memperbarui status di server backend${errStatus}. Tampilan lokal telah diperbarui secara sementara.`,
+    }
   }
   showStatusFeedback.value = true
 }
@@ -601,16 +802,37 @@ const saveStatus = () => {
 
 .modal-img-container {
   width: 100%;
-  max-height: 280px;
-  border-radius: 12px;
+  height: 320px;
+  border-radius: 14px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
+  background-color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
-.modal-img {
+.modal-img-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: blur(20px) brightness(0.5);
+  transform: scale(1.15);
+  pointer-events: none;
+}
+
+.modal-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
 }
 
 .style-fit-content {
