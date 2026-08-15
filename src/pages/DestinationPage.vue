@@ -970,16 +970,23 @@ function isUrl(str) {
 function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
 
-  if (url.includes('/static/')) {
+  // Jika URL absolut dari ngrok dan mengandung /static/, proxy lewat Vercel rewrite
+  if (
+    (url.startsWith('http://') || url.startsWith('https://')) &&
+    url.includes('ngrok') &&
+    url.includes('/static/')
+  ) {
     const staticPath = url.substring(url.indexOf('/static/'))
-    const separator = staticPath.includes('?') ? '&' : '?'
-    return `${staticPath}${separator}ngrok-skip-browser-warning=true`
+    return staticPath // → /static/... → di-proxy oleh vercel.json
   }
 
-  if (url.includes('ngrok') && !url.includes('ngrok-skip-browser-warning')) {
-    const separator = url.includes('?') ? '&' : '?'
-    return `${url}${separator}ngrok-skip-browser-warning=true`
+  // Jika path relatif sudah /static/
+  if (url.includes('/static/')) {
+    const staticPath = url.substring(url.indexOf('/static/'))
+    return staticPath
   }
+
+  // URL lainnya langsung dikembalikan
   return url
 }
 

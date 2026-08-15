@@ -465,23 +465,34 @@ async function fetchDestinations() {
 function formatReportImage(url) {
   if (!url || typeof url !== 'string') return report1Img
 
-  if (url.includes('/static/')) {
+  // Jika URL absolut dari ngrok dan mengandung /static/, proxy lewat Vercel rewrite
+  if (
+    (url.startsWith('http://') || url.startsWith('https://')) &&
+    url.includes('ngrok') &&
+    url.includes('/static/')
+  ) {
     const staticPath = url.substring(url.indexOf('/static/'))
-    const sep = staticPath.includes('?') ? '&' : '?'
-    return `${staticPath}${sep}ngrok-skip-browser-warning=true`
+    return staticPath // → /static/... → di-proxy oleh vercel.json
   }
 
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
-    if (url.includes('ngrok') && !url.includes('ngrok-skip-browser-warning')) {
-      const sep = url.includes('?') ? '&' : '?'
-      return `${url}${sep}ngrok-skip-browser-warning=true`
-    }
+  // Jika path relatif sudah /static/
+  if (url.includes('/static/')) {
+    const staticPath = url.substring(url.indexOf('/static/'))
+    return staticPath
+  }
+
+  // data:image URI langsung dipakai
+  if (url.startsWith('data:image/')) {
     return url
   }
 
-  const path = url.startsWith('/') ? url : `/${url}`
-  const sep = path.includes('?') ? '&' : '?'
-  return `${path}${sep}ngrok-skip-browser-warning=true`
+  // URL absolut non-ngrok → pakai langsung
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+
+  // Path relatif lainnya
+  return url.startsWith('/') ? url : `/${url}`
 }
 
 function formatStatus(st) {
