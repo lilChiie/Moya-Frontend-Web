@@ -971,20 +971,26 @@ function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
   if (url.startsWith('data:image/')) return url
 
-  let fullUrl = url.trim()
+  let cleanUrl = url.trim()
 
-  if (fullUrl.startsWith('/')) {
-    fullUrl = `https://coronary-moonstone-grain.ngrok-free.dev${fullUrl}`
-  } else if (fullUrl.includes('ngrok-free.app') || fullUrl.includes('ngrok-free.dev')) {
-    fullUrl = fullUrl.replace(/^https?:\/\/[^/]+/, 'https://coronary-moonstone-grain.ngrok-free.dev')
+  if (cleanUrl.includes('/static/')) {
+    const staticPath = cleanUrl.substring(cleanUrl.indexOf('/static/'))
+    const separator = staticPath.includes('?') ? '&' : '?'
+    return `${staticPath}${separator}ngrok-skip-browser-warning=true`
   }
 
-  if (!fullUrl.includes('ngrok-skip-browser-warning')) {
-    const separator = fullUrl.includes('?') ? '&' : '?'
-    return `${fullUrl}${separator}ngrok-skip-browser-warning=true`
+  if (cleanUrl.includes('ngrok-free.app') || cleanUrl.includes('ngrok-free.dev') || cleanUrl.includes('ngrok.io')) {
+    cleanUrl = cleanUrl.replace(/^https?:\/\/[^/]+/, 'https://coronary-moonstone-grain.ngrok-free.dev')
   }
 
-  return fullUrl
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    const separator = cleanUrl.includes('?') ? '&' : '?'
+    return `${cleanUrl}${separator}ngrok-skip-browser-warning=true`
+  }
+
+  const path = cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}ngrok-skip-browser-warning=true`
 }
 
 const filteredDestinations = computed(() => {
