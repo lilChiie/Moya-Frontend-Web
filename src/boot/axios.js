@@ -20,6 +20,8 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     config.headers['ngrok-skip-browser-warning'] = 'true'
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    config.headers['Pragma'] = 'no-cache'
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
