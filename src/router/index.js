@@ -38,8 +38,8 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     const token = localStorage.getItem('token')
     const user = JSON.parse(localStorage.getItem('user') || 'null')
     const isAuth = !!token
-    const role = user?.role ? String(user.role).toLowerCase() : 'admin'
-    const isAdmin = role === 'admin'
+    const role = user?.role ? String(user.role).toLowerCase() : ''
+    const isAdmin = role === 'admin' || role === 'administrator' || role === '1'
 
     const isLoginPage = to.path === '/'
 

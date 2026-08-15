@@ -72,16 +72,16 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       const userData = resData.user || resData.data || {}
-      const accessToken = userData.access_token || resData.access_token || resData.token
+      const accessToken = resData.access_token || userData.access_token || resData.token
 
       if (!accessToken) {
         throw new Error('Authentication token was not returned from the server.')
       }
 
-      // Extract role from response object or JWT payload
+      // Extract role from user object, response root, or JWT payload
       const detectedRole = extractUserRole(resData, userData, accessToken)
 
-      // Strict Admin Role Verification
+      // Strict Admin Role Verification: Only allow 'admin', 'administrator', or '1'
       const isUserAdmin =
         detectedRole === 'admin' ||
         detectedRole === 'administrator' ||
@@ -93,13 +93,11 @@ export const useAuthStore = defineStore('auth', () => {
         )
       }
 
-      const finalRole = detectedRole || 'admin'
-
       // Save to state
       token.value = accessToken
       user.value = {
         ...userData,
-        role: finalRole,
+        role: detectedRole || 'admin',
       }
 
       // Save to localStorage

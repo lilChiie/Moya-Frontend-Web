@@ -108,6 +108,7 @@
       type="success"
       title="Login Successful!"
       message="Congratulations! You have successfully logged in as Administrator. Redirecting to Dashboard..."
+      :auto-close-delay="1200"
       @confirm="redirectToDashboard"
     />
 
@@ -169,6 +170,9 @@ const handleLogin = async () => {
   try {
     await authStore.login(email.value, password.value)
     showSuccessModal.value = true
+    setTimeout(() => {
+      redirectToDashboard()
+    }, 1200)
   } catch (error) {
     console.error('Login error:', error)
     generalError.value = error.message
