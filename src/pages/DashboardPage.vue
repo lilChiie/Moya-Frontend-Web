@@ -366,29 +366,24 @@ function formatDashboardDate(dateStr) {
 
 function formatDashboardImage(url) {
   if (!url || typeof url !== 'string') return report1Img
+
+  if (url.includes('/static/')) {
+    const staticPath = url.substring(url.indexOf('/static/'))
+    const sep = staticPath.includes('?') ? '&' : '?'
+    return `${staticPath}${sep}ngrok-skip-browser-warning=true`
+  }
+
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
-    if (url.includes('ngrok-free.app') && !url.includes('ngrok-skip-browser-warning')) {
+    if (url.includes('ngrok') && !url.includes('ngrok-skip-browser-warning')) {
       const sep = url.includes('?') ? '&' : '?'
       return `${url}${sep}ngrok-skip-browser-warning=true`
     }
     return url
   }
-  const baseURL = api.defaults.baseURL || 'https://a439-103-164-80-87.ngrok-free.app'
-  let origin = ''
-  if (baseURL.startsWith('http://') || baseURL.startsWith('https://')) {
-    try {
-      const parsedUrl = new URL(baseURL)
-      origin = parsedUrl.origin
-    } catch {
-      origin = baseURL.replace(/\/api\/?$/, '').replace(/\/$/, '')
-    }
-  } else {
-    origin = 'https://a439-103-164-80-87.ngrok-free.app'
-  }
+
   const path = url.startsWith('/') ? url : `/${url}`
-  const fullUrl = `${origin}${path}`
-  const sep = fullUrl.includes('?') ? '&' : '?'
-  return `${fullUrl}${sep}ngrok-skip-browser-warning=true`
+  const sep = path.includes('?') ? '&' : '?'
+  return `${path}${sep}ngrok-skip-browser-warning=true`
 }
 
 function resolveDashboardLocation(item) {

@@ -76,7 +76,15 @@ export default defineConfig((/* ctx */) => {
       open: true, // opens browser window automatically
       proxy: {
         '/api': {
-          target: 'https://a439-103-164-80-87.ngrok-free.app',
+          target: 'https://coronary-moonstone-grain.ngrok-free.dev',
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            'ngrok-skip-browser-warning': '69420',
+          },
+        },
+        '/static': {
+          target: 'https://coronary-moonstone-grain.ngrok-free.dev',
           changeOrigin: true,
           secure: false,
           headers: {

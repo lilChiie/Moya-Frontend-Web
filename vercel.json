@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://a439-103-164-80-87.ngrok-free.app/api/:path*"
+      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/api/:path*"
     },
     {
       "source": "/static/:path*",
-      "destination": "https://a439-103-164-80-87.ngrok-free.app/static/:path*"
+      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/:path*"
     },
     {
       "source": "/(.*)",

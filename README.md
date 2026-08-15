@@ -51,7 +51,7 @@ cp .env.example .env
 ```
 Set the variable in `.env`:
 ```env
-VITE_API_BASE_URL=https://a439-103-164-80-87.ngrok-free.app/api
+VITE_API_BASE_URL=https://coronary-moonstone-grain.ngrok-free.dev/api
 ```
 
 ---

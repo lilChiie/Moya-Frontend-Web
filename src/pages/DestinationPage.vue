@@ -969,7 +969,14 @@ function isUrl(str) {
 
 function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
-  if (url.includes('ngrok-free.app') && !url.includes('ngrok-skip-browser-warning')) {
+
+  if (url.includes('/static/')) {
+    const staticPath = url.substring(url.indexOf('/static/'))
+    const separator = staticPath.includes('?') ? '&' : '?'
+    return `${staticPath}${separator}ngrok-skip-browser-warning=true`
+  }
+
+  if (url.includes('ngrok') && !url.includes('ngrok-skip-browser-warning')) {
     const separator = url.includes('?') ? '&' : '?'
     return `${url}${separator}ngrok-skip-browser-warning=true`
   }
