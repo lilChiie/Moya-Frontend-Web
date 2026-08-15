@@ -15,7 +15,10 @@
 
           <div class="column text-left">
             <span class="text-subtitle2 text-weight-bold" style="line-height: 1.1">
-              Administrator
+              {{ userName }}
+            </span>
+            <span class="text-caption text-grey-3" style="font-size: 0.7rem;" v-if="userEmail">
+              {{ userEmail }}
             </span>
           </div>
         </div>
@@ -56,7 +59,12 @@
             icon="logout"
             label="Logout"
             class="full-width text-weight-bold logout-btn"
-            style="border-radius: 12px; justify-content: flex-start; padding: 10px 16px; border-width: 1.5px"
+            style="
+              border-radius: 12px;
+              justify-content: flex-start;
+              padding: 10px 16px;
+              border-width: 1.5px;
+            "
             @click="showLogoutModal = true"
           />
         </div>
@@ -73,16 +81,21 @@
             <q-icon name="logout" size="36px" color="primary" />
           </div>
 
-          <h3 class="text-h6 text-weight-bold text-grey-9 q-ma-none q-mb-xs">
-            Confirm Logout
-          </h3>
+          <h3 class="text-h6 text-weight-bold text-grey-9 q-ma-none q-mb-xs">Confirm Logout</h3>
 
           <p class="text-body2 text-grey-7 q-mb-lg font-dialog-message">
             Are you sure you want to log out from the Moya Admin System?
           </p>
 
           <div class="row justify-center q-gutter-x-sm full-width">
-            <q-btn flat label="Cancel" no-caps color="grey-8" v-close-popup class="dialog-cancel-btn" />
+            <q-btn
+              flat
+              label="Cancel"
+              no-caps
+              color="grey-8"
+              v-close-popup
+              class="dialog-cancel-btn"
+            />
             <q-btn
               color="primary"
               no-caps
@@ -90,6 +103,7 @@
               label="Logout"
               icon="logout"
               class="text-weight-bold"
+              :loading="isLoggingOut"
               @click="confirmLogout"
             />
           </div>
@@ -100,14 +114,20 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from 'src/stores/auth'
 import EssentialLink from 'components/EssentialLink.vue'
 import logoImg from 'assets/logo.png'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const leftDrawerOpen = ref(false)
 const showLogoutModal = ref(false)
+const isLoggingOut = ref(false)
+
+const userName = computed(() => authStore.user?.name || 'Administrator')
+const userEmail = computed(() => authStore.user?.email || '')
 
 const linksList = [
   {
@@ -149,6 +169,7 @@ function toggleLeftDrawer() {
 
 function confirmLogout() {
   showLogoutModal.value = false
+  authStore.logout()
   router.push('/')
 }
 </script>

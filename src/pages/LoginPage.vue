@@ -22,12 +22,21 @@
           <div class="form-header-container">
             <img :src="logo1Img" alt="MOYA Logo" class="form-logo-img q-mb-sm" />
             <h2 class="form-title">Admin Login</h2>
-            <p class="form-subtitle">
-              Sign in to access destination & cleanliness management
-            </p>
+            <p class="form-subtitle">Sign in to access destination & cleanliness management</p>
           </div>
 
           <q-form @submit.prevent="handleLogin" class="auth-form">
+            <q-banner
+              v-if="generalError"
+              class="bg-negative text-white q-mb-md rounded-borders"
+              style="border-radius: 8px"
+            >
+              <template v-slot:avatar>
+                <q-icon name="error" color="white" />
+              </template>
+              {{ generalError }}
+            </q-banner>
+
             <div class="form-group">
               <label for="email" class="form-label">Email</label>
               <q-input
@@ -42,7 +51,7 @@
                 :error="!!emailError"
                 :error-message="emailError"
                 hide-bottom-space
-                @update:model-value="emailError = ''"
+                @update:model-value="clearErrors"
               >
                 <template #prepend>
                   <q-icon name="email" color="primary" />
@@ -64,7 +73,7 @@
                 :error="!!passwordError"
                 :error-message="passwordError"
                 hide-bottom-space
-                @update:model-value="passwordError = ''"
+                @update:model-value="clearErrors"
               >
                 <template #prepend>
                   <q-icon name="lock" color="primary" />
@@ -86,20 +95,29 @@
               no-caps
               label="Login"
               class="login-btn full-width text-weight-bold q-mt-lg"
-              style="border-radius: 12px; height: 46px; font-size: 1rem;"
+              style="border-radius: 12px; height: 46px; font-size: 1rem"
               :loading="isLoading"
             />
           </q-form>
         </div>
       </div>
     </div>
-    
+
     <StatusDialog
       v-model="showSuccessModal"
       type="success"
       title="Login Successful!"
-      message="Congratulations! You have successfully logged in. Redirecting to Dashboard..."
+      message="Congratulations! You have successfully logged in as Administrator. Redirecting to Dashboard..."
       @confirm="redirectToDashboard"
+    />
+
+    <StatusDialog
+      v-model="showErrorModal"
+      type="error"
+      title="Access Denied / Login Failed"
+      :message="errorMessage"
+      show-button-on-success
+      confirm-label="Close"
     />
   </div>
 </template>
@@ -107,12 +125,14 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from 'src/stores/auth'
 import StatusDialog from 'components/StatusDialog.vue'
 import logoImg from 'assets/logo.png'
 import logo1Img from 'assets/logo_1.png'
 import otwImg from 'assets/otw.png'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
@@ -120,11 +140,19 @@ const showPassword = ref(false)
 const isLoading = ref(false)
 const emailError = ref('')
 const passwordError = ref('')
+const generalError = ref('')
 const showSuccessModal = ref(false)
+const showErrorModal = ref(false)
+const errorMessage = ref('')
 
-const handleLogin = async () => {
+function clearErrors() {
   emailError.value = ''
   passwordError.value = ''
+  generalError.value = ''
+}
+
+const handleLogin = async () => {
+  clearErrors()
 
   if (!email.value) {
     emailError.value = 'Email is required'
@@ -139,10 +167,13 @@ const handleLogin = async () => {
   isLoading.value = true
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await authStore.login(email.value, password.value)
     showSuccessModal.value = true
   } catch (error) {
     console.error('Login error:', error)
+    generalError.value = error.message
+    errorMessage.value = error.message
+    showErrorModal.value = true
   } finally {
     isLoading.value = false
   }
@@ -172,7 +203,9 @@ function redirectToDashboard() {
   min-height: 560px;
   background-color: #ffffff;
   border-radius: 18px;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 45px -10px rgba(0, 0, 0, 0.12),
+    0 8px 16px -4px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   display: flex;
   flex-direction: row;
@@ -216,7 +249,13 @@ function redirectToDashboard() {
 }
 
 .welcome-text {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Poppins',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 2.2rem;
   font-weight: 800;
   color: #2c331b;
@@ -288,7 +327,13 @@ function redirectToDashboard() {
 }
 
 .form-title {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Poppins',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 1.8rem;
   font-weight: 800;
   color: #111827;

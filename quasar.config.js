@@ -74,6 +74,16 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // https: true,
       open: true, // opens browser window automatically
+      proxy: {
+        '/api': {
+          target: 'https://a439-103-164-80-87.ngrok-free.app',
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            'ngrok-skip-browser-warning': '69420',
+          },
+        },
+      },
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

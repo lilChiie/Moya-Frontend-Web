@@ -33,5 +33,34 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   })
 
+  // Strict Navigation Guard: Restrict ALL pages except Login ('/')
+  Router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('token')
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    const isAuth = !!token
+    const role = user?.role ? String(user.role).toLowerCase() : 'admin'
+    const isAdmin = role === 'admin'
+
+    const isLoginPage = to.path === '/'
+
+    if (!isLoginPage) {
+      // Trying to access any protected page (Dashboard, Destination, Monitoring, etc.)
+      if (!isAuth || !isAdmin) {
+        if (isAuth && !isAdmin) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+        }
+        return next('/')
+      }
+    } else {
+      // Trying to access Login page while already logged in as Admin
+      if (isAuth && isAdmin) {
+        return next('/admin/dashboard')
+      }
+    }
+
+    next()
+  })
+
   return Router
 })
