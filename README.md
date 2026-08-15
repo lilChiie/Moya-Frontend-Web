@@ -4,6 +4,14 @@ Frontend website for **Moya**, an Artificial Intelligence (AI) powered platform 
 
 ---
 
+## Repositories
+
+- **Backend Repository**: [https://github.com/lilChiie/Moya-Backend.git](https://github.com/lilChiie/Moya-Backend.git)
+- **Frontend Mobile Repository**: [https://github.com/lilChiie/Moya-Frontend-Mobile.git](https://github.com/lilChiie/Moya-Frontend-Mobile.git)
+- **Frontend Web Repository**: [https://github.com/lilChiie/Moya-Frontend-Web.git](https://github.com/lilChiie/Moya-Frontend-Web.git)
+
+---
+
 ## Tech Stack
 
 - **Vue 3** (Composition API)
