@@ -60,7 +60,7 @@
           <template #body-cell-foto="props">
             <q-td :props="props">
               <div class="table-img-wrapper cursor-pointer" @click="openDetailModal(props.row)">
-                <img :src="props.row.image" :alt="props.row.location" class="table-img" />
+                <ProxyImage :src="props.row.image" :alt="props.row.location" class="table-img" />
               </div>
             </q-td>
           </template>
@@ -171,7 +171,7 @@
 
                 <div class="row items-center q-gutter-x-sm q-mb-sm">
                   <div class="table-img-wrapper cursor-pointer" @click="openDetailModal(props.row)">
-                    <img :src="props.row.image" :alt="props.row.location" class="table-img" />
+                    <ProxyImage :src="props.row.image" :alt="props.row.location" class="table-img" />
                   </div>
                   <div class="column">
                     <span class="text-subtitle2 text-weight-bold text-grey-9">{{
@@ -221,8 +221,8 @@
             <q-spinner-dots size="40px" color="primary" />
           </q-inner-loading>
           <div class="modal-img-container q-mb-md">
-            <img :src="selectedReport.image" :alt="selectedReport.location" class="modal-img-blur" />
-            <img :src="selectedReport.image" :alt="selectedReport.location" class="modal-img" />
+            <ProxyImage :src="selectedReport.image" :alt="selectedReport.location" class="modal-img-blur" />
+            <ProxyImage :src="selectedReport.image" :alt="selectedReport.location" class="modal-img" />
           </div>
 
           <div class="row q-col-gutter-md">
@@ -372,6 +372,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
+import ProxyImage from 'components/ProxyImage.vue'
 
 import report1Img from 'assets/report1.jpg'
 

@@ -94,7 +94,7 @@
               >
                 <div class="row items-center q-gutter-x-sm">
                   <div class="img-wrapper">
-                    <img :src="item.image" :alt="item.title" class="report-img" />
+                    <ProxyImage :src="item.image" :alt="item.title" :fallback="report1Img" class="report-img" />
                   </div>
                   <div class="column justify-center">
                     <div
@@ -131,6 +131,7 @@ import { api } from 'boot/axios'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import apexchart from 'vue3-apexcharts'
+import ProxyImage from 'components/ProxyImage.vue'
 
 import report1Img from 'assets/report1.jpg'
 

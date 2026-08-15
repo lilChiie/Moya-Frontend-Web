@@ -70,7 +70,7 @@
                 class="table-img-wrapper cursor-pointer flex flex-center bg-grey-2"
                 @click="openDetailModal(props.row)"
               >
-                <img
+                <ProxyImage
                   v-if="props.row.image && isUrl(props.row.image)"
                   :src="formatImageUrl(props.row.image)"
                   :alt="props.row.name"
@@ -211,7 +211,7 @@
 
                 <div class="row items-center q-gutter-x-sm q-mb-sm">
                   <div class="table-img-wrapper cursor-pointer flex flex-center bg-grey-2" @click="openDetailModal(props.row)">
-                    <img
+                    <ProxyImage
                       v-if="props.row.image && isUrl(props.row.image)"
                       :src="formatImageUrl(props.row.image)"
                       :alt="props.row.name"
@@ -270,12 +270,12 @@
         <q-card-section class="q-pa-lg">
           <div class="detail-img-container q-mb-md">
             <template v-if="selectedDest.image && isUrl(selectedDest.image)">
-              <img
+              <ProxyImage
                 :src="formatImageUrl(selectedDest.image)"
                 :alt="selectedDest.name"
                 class="detail-img-blur"
               />
-              <img
+              <ProxyImage
                 :src="formatImageUrl(selectedDest.image)"
                 :alt="selectedDest.name"
                 class="detail-img"
@@ -581,6 +581,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
 import ConfirmDeleteDialog from 'components/ConfirmDeleteDialog.vue'
+import ProxyImage from 'components/ProxyImage.vue'
 
 const filterSearch = ref('')
 
