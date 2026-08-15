@@ -1,5 +1,9 @@
 const routes = [
   {
+    path: '/login',
+    component: () => import('pages/LoginPage.vue'),
+  },
+  {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
@@ -9,6 +13,7 @@ const routes = [
       { path: 'destination', component: () => import('pages/DestinationPage.vue') },
       { path: 'master-data/accessibility', component: () => import('pages/AccessibilityPage.vue') },
       { path: 'master-data/tourism-type', component: () => import('pages/TourismTypePage.vue') },
+      { path: 'login', component: () => import('pages/LoginPage.vue') }
     ],
   },
 
