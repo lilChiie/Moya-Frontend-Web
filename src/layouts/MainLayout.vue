@@ -1,19 +1,32 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+    <q-header elevated class="bg-primary text-white q-py-xs">
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-toolbar-title class="text-weight-bold"> Moya </q-toolbar-title>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <q-space />
+
+        <div class="row items-center q-gutter-x-sm q-px-sm">
+          <q-avatar size="32px" class="bg-white text-primary text-weight-bold q-mr-xs">
+            <q-icon name="person" size="20px" />
+          </q-avatar>
+
+          <div class="column text-left">
+            <span class="text-subtitle2 text-weight-bold" style="line-height: 1.1;">Administrator</span>
+          </div>
+        </div>
       </q-toolbar>
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
+      <div class="q-px-xl q-py-md column items-center bg-grey-1" style="border-bottom: 1px solid rgba(0, 0, 0, 0.08)">
+        <img :src="logoImg" alt="Logo Moya" style="width: 100%; max-height: 80px; object-fit: contain;" class="q-mb-xs" />
+        <div class="text-subtitle1 text-weight-bold text-primary text-center" style="line-height: 1.2;">Mobility Voyage</div>
+      </div>
 
+      <q-list padding class="q-px-lg">
         <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
       </q-list>
     </q-drawer>
@@ -27,49 +40,39 @@
 <script setup>
 import { ref } from 'vue'
 import EssentialLink from 'components/EssentialLink.vue'
+import logoImg from 'assets/logo.png'
 
 const linksList = [
   {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
+    title: 'Dashboard',
+    icon: 'dashboard',
+    link: '/dashboard',
   },
   {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
+    title: 'Monitoring',
+    icon: 'assessment',
+    link: '/monitoring',
   },
   {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
+    title: 'Destination',
+    icon: 'place',
+    link: '/destination',
   },
   {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
+    title: 'Master Data',
+    icon: 'storage',
+    children: [
+      {
+        title: 'Accessibility',
+        icon: 'accessible',
+        link: '/master-data/accessibility',
+      },
+      {
+        title: 'Tourism Type',
+        icon: 'category',
+        link: '/master-data/tourism-type',
+      },
+    ],
   },
 ]
 
