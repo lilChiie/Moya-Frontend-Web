@@ -44,6 +44,7 @@
           row-key="id"
           flat
           class="custom-master-table"
+          :loading="isLoading"
           :pagination="{ rowsPerPage: 10 }"
         >
           <template #body-cell-index="props">
@@ -125,6 +126,7 @@
                 style="border-radius: 12px"
                 :label="isEditing ? 'Save Changes' : 'Create'"
                 icon="save"
+                :loading="isSubmitting"
               />
             </div>
           </q-form>
@@ -153,6 +155,7 @@
               style="border-radius: 12px"
               label="Delete"
               icon="delete"
+              :loading="isDeleting"
               @click="confirmDelete"
             />
           </div>
@@ -170,10 +173,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
 
 const filterSearch = ref('')
+
+const isLoading = ref(false)
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
+
 const showFormModal = ref(false)
 const isEditing = ref(false)
 const selectedItem = ref(null)
@@ -215,14 +224,43 @@ const columns = [
   },
 ]
 
-const items = ref([
-  { id: 1, name: 'Good Road Access' },
-  { id: 2, name: 'Wheelchair Ramp' },
-  { id: 3, name: 'Public Transportation' },
-  { id: 4, name: 'Spacious Parking' },
-  { id: 5, name: 'Public Restrooms' },
-  { id: 6, name: 'Information Center' },
-])
+const items = ref([])
+
+async function fetchAccessibilityOptions() {
+  isLoading.value = true
+  try {
+    let response
+    try {
+      response = await api.get('/accessibility/')
+    } catch {
+      response = await api.get('/accessibility')
+    }
+    const resData = response.data
+    const list = Array.isArray(resData)
+      ? resData
+      : resData?.data || resData?.accessibilities || resData?.accessibility || resData?.result || []
+
+    items.value = list.map((item, index) => ({
+      id: item.id || item.accessibility_id || item._id || (index + 1),
+      name: item.name || item.accessibility_name || item.title || '',
+      raw: item,
+    }))
+  } catch (error) {
+    console.error('Error fetching accessibility options:', error)
+    feedbackConfig.value = {
+      type: 'error',
+      title: 'Failed to Fetch Data',
+      message: error.response?.data?.message || error.message || 'Unable to load accessibility options from server.',
+    }
+    showStatusFeedback.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchAccessibilityOptions()
+})
 
 const filteredList = computed(() => {
   if (!filterSearch.value) return items.value
@@ -261,7 +299,7 @@ function openDeleteModal(item) {
   showDeleteConfirmModal.value = true
 }
 
-function saveForm() {
+async function saveForm() {
   if (!form.value.name || !form.value.name.trim()) return
 
   const inputName = form.value.name.trim()
@@ -279,41 +317,87 @@ function saveForm() {
     return
   }
 
-  if (isEditing.value) {
-    const idx = items.value.findIndex((i) => i.id === form.value.id)
-    if (idx !== -1) {
-      items.value[idx].name = inputName
-    }
-    feedbackConfig.value = {
-      type: 'success',
-      title: 'Accessibility Updated',
-      message: `Accessibility option "${inputName}" has been updated successfully.`,
-    }
-  } else {
-    const newId = items.value.length ? Math.max(...items.value.map((i) => i.id)) + 1 : 1
-    items.value.push({ id: newId, name: inputName })
-    feedbackConfig.value = {
-      type: 'success',
-      title: 'Accessibility Created',
-      message: `New accessibility option "${inputName}" has been created successfully.`,
-    }
-  }
+  isSubmitting.value = true
 
-  showFormModal.value = false
-  showStatusFeedback.value = true
+  try {
+    if (isEditing.value) {
+      // Edit API call
+      try {
+        await api.put(`/accessibility/${form.value.id}/`, { name: inputName })
+      } catch {
+        try {
+          await api.put(`/accessibility/${form.value.id}`, { name: inputName })
+        } catch {
+          await api.patch(`/accessibility/${form.value.id}/`, { name: inputName })
+        }
+      }
+
+      feedbackConfig.value = {
+        type: 'success',
+        title: 'Accessibility Updated',
+        message: `Accessibility option "${inputName}" has been updated successfully.`,
+      }
+    } else {
+      // Create API call
+      try {
+        await api.post('/accessibility/', { name: inputName })
+      } catch {
+        await api.post('/accessibility', { name: inputName })
+      }
+
+      feedbackConfig.value = {
+        type: 'success',
+        title: 'Accessibility Created',
+        message: `New accessibility option "${inputName}" has been created successfully.`,
+      }
+    }
+
+    showFormModal.value = false
+    await fetchAccessibilityOptions()
+    showStatusFeedback.value = true
+  } catch (error) {
+    console.error('Error saving accessibility option:', error)
+    feedbackConfig.value = {
+      type: 'error',
+      title: isEditing.value ? 'Update Failed' : 'Creation Failed',
+      message: error.response?.data?.message || error.message || 'Failed to save accessibility option to server.',
+    }
+    showStatusFeedback.value = true
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
-function confirmDelete() {
-  if (selectedItem.value) {
-    items.value = items.value.filter((i) => i.id !== selectedItem.value.id)
+async function confirmDelete() {
+  if (!selectedItem.value) return
+
+  isDeleting.value = true
+
+  try {
+    try {
+      await api.delete(`/accessibility/${selectedItem.value.id}/`)
+    } catch {
+      await api.delete(`/accessibility/${selectedItem.value.id}`)
+    }
     showDeleteConfirmModal.value = false
 
     feedbackConfig.value = {
       type: 'success',
       title: 'Accessibility Deleted',
-      message: `Accessibility option "${selectedItem.value.name}" has been deleted.`,
+      message: `Accessibility option "${selectedItem.value.name}" has been deleted successfully.`,
+    }
+    await fetchAccessibilityOptions()
+    showStatusFeedback.value = true
+  } catch (error) {
+    console.error('Error deleting accessibility option:', error)
+    feedbackConfig.value = {
+      type: 'error',
+      title: 'Delete Failed',
+      message: error.response?.data?.message || error.message || 'Failed to delete accessibility option from server.',
     }
     showStatusFeedback.value = true
+  } finally {
+    isDeleting.value = false
   }
 }
 </script>

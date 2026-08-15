@@ -44,6 +44,7 @@
           row-key="id"
           flat
           class="custom-master-table"
+          :loading="isLoading"
           :pagination="{ rowsPerPage: 10 }"
         >
           <template #body-cell-index="props">
@@ -125,6 +126,7 @@
                 style="border-radius: 12px"
                 :label="isEditing ? 'Save Changes' : 'Create'"
                 icon="save"
+                :loading="isSubmitting"
               />
             </div>
           </q-form>
@@ -153,6 +155,7 @@
               style="border-radius: 12px"
               label="Delete"
               icon="delete"
+              :loading="isDeleting"
               @click="confirmDelete"
             />
           </div>
@@ -170,10 +173,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
 
 const filterSearch = ref('')
+
+const isLoading = ref(false)
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
 
 const showFormModal = ref(false)
 const isEditing = ref(false)
@@ -217,14 +225,43 @@ const columns = [
   },
 ]
 
-const items = ref([
-  { id: 1, name: 'Beach & Marine Tourism' },
-  { id: 2, name: 'Cultural & Historical' },
-  { id: 3, name: 'Shopping & Urban' },
-  { id: 4, name: 'Nature & Eco-Tourism' },
-  { id: 5, name: 'Culinary Tourism' },
-  { id: 6, name: 'Recreation & Entertainment' },
-])
+const items = ref([])
+
+async function fetchTourismTypes() {
+  isLoading.value = true
+  try {
+    let response
+    try {
+      response = await api.get('/tourism/')
+    } catch {
+      response = await api.get('/tourism')
+    }
+    const resData = response.data
+    const list = Array.isArray(resData)
+      ? resData
+      : resData?.data || resData?.tourism || resData?.tourism_types || resData?.result || []
+
+    items.value = list.map((item, index) => ({
+      id: item.id || item.tourism_id || item._id || (index + 1),
+      name: item.name || item.tourism_name || item.type_name || item.title || '',
+      raw: item,
+    }))
+  } catch (error) {
+    console.error('Error fetching tourism types:', error)
+    feedbackConfig.value = {
+      type: 'error',
+      title: 'Failed to Fetch Data',
+      message: error.response?.data?.message || error.message || 'Unable to load tourism types from server.',
+    }
+    showStatusFeedback.value = true
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchTourismTypes()
+})
 
 const filteredList = computed(() => {
   if (!filterSearch.value) return items.value
@@ -263,7 +300,7 @@ function openDeleteModal(item) {
   showDeleteConfirmModal.value = true
 }
 
-function saveForm() {
+async function saveForm() {
   if (!form.value.name || !form.value.name.trim()) return
 
   const inputName = form.value.name.trim()
@@ -281,41 +318,87 @@ function saveForm() {
     return
   }
 
-  if (isEditing.value) {
-    const idx = items.value.findIndex((i) => i.id === form.value.id)
-    if (idx !== -1) {
-      items.value[idx].name = inputName
-    }
-    feedbackConfig.value = {
-      type: 'success',
-      title: 'Tourism Type Updated',
-      message: `Tourism type "${inputName}" has been updated successfully.`,
-    }
-  } else {
-    const newId = items.value.length ? Math.max(...items.value.map((i) => i.id)) + 1 : 1
-    items.value.push({ id: newId, name: inputName })
-    feedbackConfig.value = {
-      type: 'success',
-      title: 'Tourism Type Created',
-      message: `New tourism type "${inputName}" has been created successfully.`,
-    }
-  }
+  isSubmitting.value = true
 
-  showFormModal.value = false
-  showStatusFeedback.value = true
+  try {
+    if (isEditing.value) {
+      // Edit API call
+      try {
+        await api.put(`/tourism/${form.value.id}/`, { name: inputName })
+      } catch {
+        try {
+          await api.put(`/tourism/${form.value.id}`, { name: inputName })
+        } catch {
+          await api.patch(`/tourism/${form.value.id}/`, { name: inputName })
+        }
+      }
+
+      feedbackConfig.value = {
+        type: 'success',
+        title: 'Tourism Type Updated',
+        message: `Tourism type "${inputName}" has been updated successfully.`,
+      }
+    } else {
+      // Create API call
+      try {
+        await api.post('/tourism/', { name: inputName })
+      } catch {
+        await api.post('/tourism', { name: inputName })
+      }
+
+      feedbackConfig.value = {
+        type: 'success',
+        title: 'Tourism Type Created',
+        message: `New tourism type "${inputName}" has been created successfully.`,
+      }
+    }
+
+    showFormModal.value = false
+    await fetchTourismTypes()
+    showStatusFeedback.value = true
+  } catch (error) {
+    console.error('Error saving tourism type:', error)
+    feedbackConfig.value = {
+      type: 'error',
+      title: isEditing.value ? 'Update Failed' : 'Creation Failed',
+      message: error.response?.data?.message || error.message || 'Failed to save tourism type to server.',
+    }
+    showStatusFeedback.value = true
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
-function confirmDelete() {
-  if (selectedItem.value) {
-    items.value = items.value.filter((i) => i.id !== selectedItem.value.id)
+async function confirmDelete() {
+  if (!selectedItem.value) return
+
+  isDeleting.value = true
+
+  try {
+    try {
+      await api.delete(`/tourism/${selectedItem.value.id}/`)
+    } catch {
+      await api.delete(`/tourism/${selectedItem.value.id}`)
+    }
     showDeleteConfirmModal.value = false
 
     feedbackConfig.value = {
       type: 'success',
       title: 'Tourism Type Deleted',
-      message: `Tourism type "${selectedItem.value.name}" has been deleted.`,
+      message: `Tourism type "${selectedItem.value.name}" has been deleted successfully.`,
+    }
+    await fetchTourismTypes()
+    showStatusFeedback.value = true
+  } catch (error) {
+    console.error('Error deleting tourism type:', error)
+    feedbackConfig.value = {
+      type: 'error',
+      title: 'Delete Failed',
+      message: error.response?.data?.message || error.message || 'Failed to delete tourism type from server.',
     }
     showStatusFeedback.value = true
+  } finally {
+    isDeleting.value = false
   }
 }
 </script>
