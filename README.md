@@ -1,9 +1,8 @@
 # Moya Frontend Web
 
-Frontend website untuk **Moya**, platform berbasis Artificial Intelligence (AI) yang membantu pemantauan dan pengelolaan kebersihan destinasi wisata melalui dashboard interaktif, sistem monitoring laporan sampah, geo-mapping lokasi, serta pemetaan real-time menggunakan OpenStreetMap.
+Frontend website for **Moya**, an Artificial Intelligence (AI) powered platform that helps monitor and manage tourism destination cleanliness through an interactive dashboard, waste report monitoring system, location geo-mapping, and real-time mapping using OpenStreetMap.
 
 ---
-
 
 ## Tech Stack
 
@@ -37,12 +36,12 @@ cd Moya-Frontend-Web
 npm install
 ```
 
-### 3. Setup Environment Variables (Opsional)
-Salin `.env.example` menjadi `.env` jika memerlukan penyesuaian URL backend:
+### 3. Setup Environment Variables (Optional)
+Copy `.env.example` to `.env` if you need backend URL customization:
 ```bash
 cp .env.example .env
 ```
-Isi variabel pada `.env`:
+Set the variable in `.env`:
 ```env
 VITE_API_BASE_URL=https://a439-103-164-80-87.ngrok-free.app/api
 ```
@@ -55,49 +54,49 @@ VITE_API_BASE_URL=https://a439-103-164-80-87.ngrok-free.app/api
 npm run dev
 ```
 
-Frontend berjalan pada:
+Frontend runs on:
 **[http://localhost:9000](http://localhost:9000)**
 
 ---
 
 ## Features
 
-- **Authentication & Admin Role Management**: Akses login khusus admin untuk pengelolaan data.
-- **Interactive Dashboard Monitoring**: Menampilkan KPI laporan, statistik tren laporan masuk (harian, mingguan, bulanan), serta laporan terbaru.
-- **OpenStreetMap Visualization & Geo-Mapping**: Pemetaan *real-time* spot destinasi wisata beserta indikator status kebersihan (Clean / Needs Attention).
-- **Report Monitoring System**: Manajemen status laporan sampah.
-- **Destination & Master Data Management**: Pengelolaan destinasi wisata, koordinat lokasi, jam operasional, tiket masuk, fasilitas (*Facilities & Amenities*), kategori wisata (*Tourism Types*), dan user ranks.
-- **AI Score Visualization**: Visualisasi skor kebersihan AI beserta chip status warna dinamis.
-- **Responsive User Interface**: Desain modern, bersih, dan responsif di berbagai perangkat (desktop, tablet, & mobile).
+- **Authentication & Admin Role Management**: Dedicated admin login access for data management.
+- **Interactive Dashboard Monitoring**: Displays report KPIs, incoming report trend statistics (daily, weekly, monthly), and latest reports.
+- **OpenStreetMap Visualization & Geo-Mapping**: Real-time mapping of tourism destination spots with cleanliness status indicators (Clean / Needs Attention).
+- **Report Monitoring System**: Waste report status management.
+- **Destination & Master Data Management**: Management of tourism destinations, location coordinates, operating hours, ticket prices, Facilities, Tourism Types, and User Ranks.
+- **AI Score Visualization**: AI cleanliness score visualization with dynamic status color badges.
+- **Responsive User Interface**: Modern, clean, and responsive design across desktop, tablet, and mobile devices.
 
 ---
 
 ## Workflow
 
-1. Admin / Pengguna melakukan **Login**.
-2. Pengguna atau masyarakat mengirimkan laporan sampah/kebersihan destinasi wisata.
-3. Gambar dan lokasi laporan diproses oleh **AI Detection Backend**.
-4. Hasil **AI Score**, status kebersihan, dan laporan terbaru ditampilkan pada **Dashboard** & **Monitoring**.
-5. Lokasi dan persebaran spot destinasi ditampilkan pada peta **OpenStreetMap** secara *real-time*.
+1. Admin / User logs in to the system.
+2. Users or the public submit waste/cleanliness reports for tourism destinations.
+3. Report image and location are processed by the **AI Detection Backend**.
+4. **AI Score**, cleanliness status, and latest reports are displayed on the **Dashboard** & **Monitoring** page.
+5. Spot locations and distribution of destinations are displayed on the **OpenStreetMap** in real time.
 
 ---
 
 ## Deployment (Vercel Ready)
 
-Proyek ini telah dilengkapi dengan file [`vercel.json`](./vercel.json) untuk mendukung *single-page application* (SPA) routing dan proxy rewrite API.
+This project includes a [`vercel.json`](./vercel.json) file to support single-page application (SPA) history routing and API proxy rewrites.
 
-Build untuk produksi:
+Production build:
 ```bash
 npm run build
 ```
-Output folder berada pada: `dist/spa`.
+Output folder is located at: `dist/spa`.
 
 ---
 
 ## Known Issues
 
-- Membutuhkan backend aktif untuk sinkronisasi data *real-time*.
-- Membutuhkan koneksi internet untuk memuat *tile map* OpenStreetMap dan aset eksternal.
+- Requires an active backend server for real-time data synchronization.
+- Requires an active internet connection to load OpenStreetMap tiles and external assets.
 
 ---
 
