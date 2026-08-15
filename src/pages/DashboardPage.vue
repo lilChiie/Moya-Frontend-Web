@@ -530,19 +530,16 @@ function renderMapSpots() {
 
   const bounds = []
 
-  spotsToRender.forEach((loc) => {
+  spotsToRender.forEach(async (loc) => {
     if (!loc.lat || !loc.lng || isNaN(loc.lat) || isNaN(loc.lng)) return
 
     const customIcon = createCustomMarkerIcon(loc.status, loc.name, loc.color)
     const m = L.marker([loc.lat, loc.lng], { icon: customIcon })
 
-    const imgTag = loc.image
-      ? `<img src="${loc.image}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />`
-      : ''
-
-    m.bindPopup(`
+    // Buat popup dulu tanpa gambar
+    const popupContent = (imgSrc) => `
       <div style="font-family: sans-serif; max-width: 210px; padding: 2px;">
-        ${imgTag}
+        ${imgSrc ? `<img src="${imgSrc}" style="width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px;" />` : ''}
         <strong style="font-size: 13px; color: #0f172a; display: block; margin-bottom: 4px;">${loc.name}</strong>
         <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">
           Status: <b style="color: ${loc.color};">${loc.status}</b>
@@ -551,7 +548,24 @@ function renderMapSpots() {
           Total Laporan: <b>${loc.laporanCount ?? 0}</b>
         </div>
       </div>
-    `)
+    `
+
+    m.bindPopup(popupContent(''))
+
+    // Jika ada gambar, fetch via axios agar header ngrok-skip-browser-warning terkirim
+    if (loc.image && loc.image.includes('/static/')) {
+      try {
+        const { default: axios } = await import('axios')
+        const { data } = await axios.get(loc.image, {
+          responseType: 'blob',
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+        })
+        const blobUrl = URL.createObjectURL(data)
+        m.setPopupContent(popupContent(blobUrl))
+      } catch {
+        // Tetap tampil popup tanpa gambar jika gagal
+      }
+    }
 
     m.addTo(mapMarkersLayerGroup.value)
     bounds.push([loc.lat, loc.lng])

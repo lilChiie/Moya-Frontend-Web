@@ -60,7 +60,7 @@
             <q-td :props="props">
               <div class="avatar-wrapper flex flex-center">
                 <q-avatar size="42px" class="shadow-1 bg-white" style="border: 2px solid #7d9240">
-                  <img
+                  <ProxyImage
                     v-if="props.row.avatar && isUrl(props.row.avatar)"
                     :src="formatImageUrl(props.row.avatar)"
                     :alt="props.row.name"
@@ -146,7 +146,7 @@
 
                 <div class="row items-center q-gutter-x-md">
                   <q-avatar size="48px" class="shadow-1 bg-white" style="border: 2px solid #7d9240">
-                    <img
+                    <ProxyImage
                       v-if="props.row.avatar && isUrl(props.row.avatar)"
                       :src="formatImageUrl(props.row.avatar)"
                       :alt="props.row.name"
@@ -307,6 +307,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from 'boot/axios'
 import StatusDialog from 'components/StatusDialog.vue'
 import ConfirmDeleteDialog from 'components/ConfirmDeleteDialog.vue'
+import ProxyImage from 'components/ProxyImage.vue'
 
 const filterSearch = ref('')
 
@@ -402,20 +403,19 @@ function isUrl(str) {
 function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
 
-  if (url.includes('/static/')) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    const separator = staticPath.includes('?') ? '&' : '?'
-    return `${staticPath}${separator}ngrok-skip-browser-warning=true`
+  // Jika URL absolut ngrok + /static/ → potong jadi path relatif → proxy Vercel
+  if (
+    (url.startsWith('http://') || url.startsWith('https://')) &&
+    url.includes('ngrok') &&
+    url.includes('/static/')
+  ) {
+    return url.substring(url.indexOf('/static/'))
   }
 
-  if (
-    typeof url === 'string' &&
-    url.includes('ngrok') &&
-    !url.includes('ngrok-skip-browser-warning')
-  ) {
-    const separator = url.includes('?') ? '&' : '?'
-    return `${url}${separator}ngrok-skip-browser-warning=true`
+  if (url.includes('/static/')) {
+    return url.substring(url.indexOf('/static/'))
   }
+
   return url
 }
 

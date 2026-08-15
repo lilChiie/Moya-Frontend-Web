@@ -62,8 +62,8 @@ async function load(url) {
 
     blobUrl = URL.createObjectURL(data)
     resolvedSrc.value = blobUrl
-  } catch (err) {
-    console.warn('[ProxyImage] Failed to load image:', url, err)
+  } catch (_err) {
+    console.warn('[ProxyImage] Failed to load image:', url, _err)
     resolvedSrc.value = ''
   }
 }
