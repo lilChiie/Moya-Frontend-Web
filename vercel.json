@@ -3,21 +3,34 @@
   "outputDirectory": "dist/spa",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/api/$1"
     },
     {
-      "source": "/static/:path*",
-      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/:path*"
+      "source": "/static/(.*)",
+      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api|static|assets|favicon.ico).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "ngrok-skip-browser-warning",
+          "value": "true"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
       "headers": [
         {
           "key": "ngrok-skip-browser-warning",
