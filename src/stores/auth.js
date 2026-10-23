@@ -60,7 +60,6 @@ export const useAuthStore = defineStore('auth', () => {
 
       const resData = response.data
 
-      // Support backend response structures
       const isSuccess =
         resData?.success === true ||
         resData?.status === 'success' ||
@@ -78,10 +77,8 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('Authentication token was not returned from the server.')
       }
 
-      // Extract role from user object, response root, or JWT payload
       const detectedRole = extractUserRole(resData, userData, accessToken)
 
-      // Strict Admin Role Verification: Only allow 'admin', 'administrator', or '1'
       const isUserAdmin =
         detectedRole === 'admin' ||
         detectedRole === 'administrator' ||
@@ -93,14 +90,12 @@ export const useAuthStore = defineStore('auth', () => {
         )
       }
 
-      // Save to state
       token.value = accessToken
       user.value = {
         ...userData,
         role: detectedRole || 'admin',
       }
 
-      // Save to localStorage
       localStorage.setItem('token', accessToken)
       localStorage.setItem('user', JSON.stringify(user.value))
 

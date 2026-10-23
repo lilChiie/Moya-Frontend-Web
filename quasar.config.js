@@ -77,6 +77,7 @@ export default defineConfig((/* ctx */) => {
       proxy: {
         '/api': {
           target: 'https://coronary-moonstone-grain.ngrok-free.dev',
+          // target: process.env.BACKEND_PROXY_URL || 'http://127.0.0.1:5000',
           changeOrigin: true,
           secure: false,
           headers: {
@@ -85,6 +86,7 @@ export default defineConfig((/* ctx */) => {
         },
         '/static': {
           target: 'https://coronary-moonstone-grain.ngrok-free.dev',
+          // target: process.env.BACKEND_PROXY_URL || 'http://127.0.0.1:5000',
           changeOrigin: true,
           secure: false,
           headers: {

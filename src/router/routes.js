@@ -10,6 +10,8 @@ const routes = [
       { path: '', redirect: '/admin/dashboard' },
       { path: 'dashboard', component: () => import('pages/DashboardPage.vue') },
       { path: 'monitoring', component: () => import('pages/MonitoringPage.vue') },
+      { path: 'monitoring/:destinationId', component: () => import('pages/MonitoringDetailPage.vue') },
+      { path: 'clean-reports', component: () => import('pages/CleanReportsPage.vue') },
       { path: 'destination', component: () => import('pages/DestinationPage.vue') },
       { path: 'destination/add', component: () => import('pages/AddDestinationPage.vue') },
       { path: 'master-data/accessibility', component: () => import('pages/AccessibilityPage.vue') },

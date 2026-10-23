@@ -114,22 +114,46 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from 'src/stores/auth'
+import { useCleanReportsStore } from 'src/stores/cleanReports'
+import { api } from 'boot/axios'
 import EssentialLink from 'components/EssentialLink.vue'
 import logoImg from 'assets/logo.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const cleanStore = useCleanReportsStore()
 const leftDrawerOpen = ref(false)
 const showLogoutModal = ref(false)
 const isLoggingOut = ref(false)
 
+const dirtyPendingCount = ref(0)
+async function fetchDirtyPendingCount() {
+  try {
+    let res
+    try { res = await api.get('/reports') } catch { res = await api.get('/reports/') }
+    const raw = res.data?.data || res.data || []
+    const list = Array.isArray(raw) ? raw : []
+    dirtyPendingCount.value = list.filter((r) => {
+      const s = String(r.status || '').toLowerCase()
+      return s !== 'resolved' && s !== 'handled'
+    }).length
+  } catch (e) {
+    console.warn('Failed to fetch dirty pending count:', e)
+  }
+}
+
+onMounted(() => {
+  cleanStore.loadFromStorage()
+  fetchDirtyPendingCount()
+})
+
 const userName = computed(() => authStore.user?.name || 'Administrator')
 const userEmail = computed(() => authStore.user?.email || '')
 
-const linksList = [
+const linksList = computed(() => [
   {
     title: 'Dashboard',
     icon: 'dashboard',
@@ -139,6 +163,15 @@ const linksList = [
     title: 'Monitoring',
     icon: 'assessment',
     link: '/admin/monitoring',
+    badge: dirtyPendingCount.value > 0 ? dirtyPendingCount.value : null,
+    badgeColor: 'negative',
+  },
+  {
+    title: 'Clean Reports',
+    icon: 'verified',
+    link: '/admin/clean-reports',
+    badge: cleanStore.pendingCleanCount > 0 ? cleanStore.pendingCleanCount : null,
+    badgeColor: 'amber-9',
   },
   {
     title: 'Destination',
@@ -166,7 +199,7 @@ const linksList = [
       },
     ],
   },
-]
+])
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value

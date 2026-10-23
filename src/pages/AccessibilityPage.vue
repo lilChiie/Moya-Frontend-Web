@@ -338,7 +338,6 @@ async function saveForm() {
 
   try {
     if (isEditing.value) {
-      // Edit API call
       try {
         await api.put(`/accessibility/${form.value.id}/`, { name: inputName })
       } catch {
@@ -355,7 +354,6 @@ async function saveForm() {
         message: `Accessibility option "${inputName}" has been updated successfully.`,
       }
     } else {
-      // Create API call
       try {
         await api.post('/accessibility/', { name: inputName })
       } catch {

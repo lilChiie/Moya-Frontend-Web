@@ -403,7 +403,6 @@ function isUrl(str) {
 function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
 
-  // Jika URL absolut ngrok + /static/ → potong jadi path relatif → proxy Vercel
   if (
     (url.startsWith('http://') || url.startsWith('https://')) &&
     url.includes('ngrok') &&

@@ -32,6 +32,12 @@
       <q-item-label>{{ props.title }}</q-item-label>
       <q-item-label caption v-if="props.caption">{{ props.caption }}</q-item-label>
     </q-item-section>
+
+    <q-item-section side v-if="props.badge">
+      <q-badge :color="props.badgeColor || 'primary'" rounded class="text-weight-bold">
+        {{ props.badge }}
+      </q-badge>
+    </q-item-section>
   </q-item>
 </template>
 
@@ -66,6 +72,16 @@ const props = defineProps({
   children: {
     type: Array,
     default: () => [],
+  },
+
+  badge: {
+    type: [String, Number],
+    default: null,
+  },
+
+  badgeColor: {
+    type: String,
+    default: 'primary',
   },
 })
 

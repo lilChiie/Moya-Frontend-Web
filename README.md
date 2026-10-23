@@ -34,22 +34,28 @@ Frontend website for **Moya**, an Artificial Intelligence (AI) powered platform 
 ## Installation
 
 ### 1. Clone Repository
+
 ```bash
 git clone https://github.com/lilChiie/Moya-Frontend-Web.git
 cd Moya-Frontend-Web
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 3. Setup Environment Variables (Optional)
+
 Copy `.env.example` to `.env` if you need backend URL customization:
+
 ```bash
 cp .env.example .env
 ```
+
 Set the variable in `.env`:
+
 ```env
 VITE_API_BASE_URL=https://coronary-moonstone-grain.ngrok-free.dev/api
 ```
@@ -69,23 +75,26 @@ Frontend runs on:
 
 ## Features
 
-- **Authentication & Admin Role Management**: Dedicated admin login access for data management.
-- **Interactive Dashboard Monitoring**: Displays report KPIs, incoming report trend statistics (daily, weekly, monthly), and latest reports.
-- **OpenStreetMap Visualization & Geo-Mapping**: Real-time mapping of tourism destination spots with cleanliness status indicators (Clean / Needs Attention).
-- **Report Monitoring System**: Waste report status management.
-- **Destination & Master Data Management**: Management of tourism destinations, location coordinates, operating hours, ticket prices, Facilities, Tourism Types, and User Ranks.
-- **AI Score Visualization**: AI cleanliness score visualization with dynamic status color badges.
+- **Authentication & Admin Role Management**: Dedicated admin login access for secure data management.
+- **Interactive Dashboard Monitoring**: Displays report KPIs, incoming report volume trends (daily, weekly, monthly), and latest activity feeds.
+- **OpenStreetMap Geo-Mapping**: Real-time interactive map of tourism destinations with cleanliness status indicators (Safe / Needs Attention / Needs Handling).
+- **Waste Report Monitoring System**: Detailed waste report inspection and lifecycle handling (Pending / Resolved) grouped by tourism destinations.
+- **Clean Reports Verification System**: Review and verify/reject clean condition proofs submitted by mobile users with admin notes, establishing a verification baseline for monitoring.
+- **Destination & Master Data Management**: Comprehensive management of tourism destinations, location coordinates, operating hours, ticket pricing, Facilities, Tourism Types, and User Rank tiers.
+- **AI Score Visualization**: Automated cleanliness classification scores and detection summaries powered by AI.
 - **Responsive User Interface**: Modern, clean, and responsive design across desktop, tablet, and mobile devices.
 
 ---
 
 ## Workflow
 
-1. Admin / User logs in to the system.
-2. Users or the public submit waste/cleanliness reports for tourism destinations.
-3. Report image and location are processed by the **AI Detection Backend**.
-4. **AI Score**, cleanliness status, and latest reports are displayed on the **Dashboard** & **Monitoring** page.
-5. Spot locations and distribution of destinations are displayed on the **OpenStreetMap** in real time.
+1. Admin logs in to the web management portal.
+2. Mobile users submit waste reports with photos processed by the **AI Detection Backend**.
+3. **AI Cleanliness Scores** and report statistics update automatically on the **Dashboard** and **Monitoring** pages.
+4. Spot locations and distribution of destinations are mapped on **OpenStreetMap** in real time with dynamic status indicators.
+5. Community members/volunteers submit clean condition proofs via mobile once an area is cleaned.
+6. Admin reviews submissions in **Clean Reports** (Approve / Reject) or navigates to **Monitoring** to resolve pending waste reports.
+7. Resolving reports restores the destination's cleanliness rating, directly boosting its recommendation ranking in the mobile app's **DSS (Decision Support System)** algorithm.
 
 ---
 
@@ -94,9 +103,11 @@ Frontend runs on:
 This project includes a [`vercel.json`](./vercel.json) file to support single-page application (SPA) history routing and API proxy rewrites.
 
 Production build:
+
 ```bash
 npm run build
 ```
+
 Output folder is located at: `dist/spa`.
 
 ---

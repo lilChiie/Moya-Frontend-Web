@@ -885,7 +885,6 @@ async function fetchDestinations() {
       : resData?.data || resData?.destinations || resData?.destination || resData?.result || []
 
     const mapped = list.map((item, index) => {
-      // Tourism IDs (array or scalar or JSON string)
       const rawTourismIds = parseArrayOrScalar(item.tourism_id).concat(parseArrayOrScalar(item.tourism_type_id))
       const tourismIds = [...new Set(rawTourismIds)]
 
@@ -900,7 +899,6 @@ async function fetchDestinations() {
           .filter(Boolean)
       }
 
-      // Accessibility IDs (array or scalar or JSON string)
       const rawAccIds = parseArrayOrScalar(item.accessibility_id).concat(parseArrayOrScalar(item.access_id))
       const accessibilityIds = [...new Set(rawAccIds)]
 
@@ -971,23 +969,20 @@ function isUrl(str) {
 function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
 
-  // Jika URL absolut dari ngrok dan mengandung /static/, proxy lewat Vercel rewrite
   if (
     (url.startsWith('http://') || url.startsWith('https://')) &&
     url.includes('ngrok') &&
     url.includes('/static/')
   ) {
     const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath // → /static/... → di-proxy oleh vercel.json
+    return staticPath 
   }
 
-  // Jika path relatif sudah /static/
   if (url.includes('/static/')) {
     const staticPath = url.substring(url.indexOf('/static/'))
     return staticPath
   }
 
-  // URL lainnya langsung dikembalikan
   return url
 }
 
@@ -1118,7 +1113,6 @@ async function saveEditDestination() {
   let lastError = null
 
   try {
-    // Always use PUT with FormData (multipart) — matches Postman behavior
     try {
       await api.put(`/destinations/${id}`, formData, reqConfigMultipart)
       apiSuccess = true
@@ -1138,7 +1132,6 @@ async function saveEditDestination() {
 
   const newImg = photoPreview.value || editForm.value.image || ''
 
-  // Update local client list for immediate UI reactivity
   const idx = destinations.value.findIndex((d) => d.id === id)
   if (idx !== -1) {
     destinations.value[idx].name = editForm.value.name

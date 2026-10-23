@@ -17,8 +17,6 @@ const props = defineProps({
 const resolvedSrc = ref('')
 let blobUrl = null
 
-// Axios khusus untuk file statis (tanpa baseURL /api)
-// Header ngrok-skip-browser-warning dikirim ke Vercel proxy → diteruskan ke ngrok upstream
 const staticAxios = axios.create({
   headers: {
     'ngrok-skip-browser-warning': 'true',
@@ -26,7 +24,6 @@ const staticAxios = axios.create({
 })
 
 async function load(url) {
-  // Bersihkan blob URL lama
   if (blobUrl) {
     URL.revokeObjectURL(blobUrl)
     blobUrl = null
@@ -37,35 +34,44 @@ async function load(url) {
     return
   }
 
-  // Aset lokal / data URI / blob URI → langsung pakai
   if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('/assets/')) {
     resolvedSrc.value = url
     return
   }
 
-  // URL yang mengandung /static/ atau ngrok → fetch via axios agar header ngrok terkirim
-  const needsProxy = url.includes('/static/') || url.includes('ngrok')
-  if (!needsProxy) {
-    resolvedSrc.value = url
+  let targetUrl = url
+  if (targetUrl.includes('/static/')) {
+    targetUrl = targetUrl.substring(targetUrl.indexOf('/static/'))
+  } else if (targetUrl.startsWith('http://') && targetUrl.includes('ngrok')) {
+    targetUrl = targetUrl.replace('http://', 'https://')
+  }
+
+  if (targetUrl.startsWith('/static/')) {
+    resolvedSrc.value = targetUrl
     return
   }
+  if (targetUrl.includes('ngrok')) {
+    try {
+      const token = localStorage.getItem('token')
+      const headers = { 'ngrok-skip-browser-warning': 'true' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
 
-  try {
-    const token = localStorage.getItem('token')
-    const headers = { 'ngrok-skip-browser-warning': 'true' }
-    if (token) headers['Authorization'] = `Bearer ${token}`
+      const { data } = await staticAxios.get(targetUrl, {
+        responseType: 'blob',
+        headers,
+      })
 
-    const { data } = await staticAxios.get(url, {
-      responseType: 'blob',
-      headers,
-    })
-
-    blobUrl = URL.createObjectURL(data)
-    resolvedSrc.value = blobUrl
-  } catch (_err) {
-    console.warn('[ProxyImage] Failed to load image:', url, _err)
-    resolvedSrc.value = ''
+      blobUrl = URL.createObjectURL(data)
+      resolvedSrc.value = blobUrl
+      return
+    } catch (_err) {
+      console.warn('[ProxyImage] Failed to load external ngrok image via blob:', targetUrl, _err)
+      resolvedSrc.value = targetUrl
+      return
+    }
   }
+
+  resolvedSrc.value = targetUrl
 }
 
 watch(() => props.src, load, { immediate: true })

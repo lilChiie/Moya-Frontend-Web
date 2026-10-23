@@ -48,39 +48,58 @@
 
       <q-card flat class="table-card q-pa-xs-res">
         <q-table
-          :rows="filteredReports"
+          :rows="filteredRows"
           :columns="columns"
-          row-key="id"
+          row-key="destinationKey"
           flat
           :loading="isLoading"
           class="custom-monitoring-table"
           :grid="$q.screen.xs"
           :pagination="{ rowsPerPage: 10 }"
         >
+          <template #body-cell-location="props">
+            <q-td :props="props">
+              <div class="text-weight-bold text-grey-9">{{ props.row.location }}</div>
+              <div class="text-caption text-grey-6">
+                {{ props.row.totalReports }} waste report(s)
+              </div>
+            </q-td>
+          </template>
+
           <template #body-cell-foto="props">
             <q-td :props="props">
-              <div class="table-img-wrapper cursor-pointer" @click="openDetailModal(props.row)">
+              <div
+                class="table-img-wrapper cursor-pointer"
+                @click="goToDetail(props.row)"
+              >
                 <ProxyImage :src="props.row.image" :alt="props.row.location" class="table-img" />
               </div>
             </q-td>
           </template>
+
           <template #body-cell-analisis="props">
             <q-td :props="props">
               <div class="column">
                 <q-chip
                   dense
                   size="sm"
-                  :class="
-                    props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'
-                  "
+                  :class="props.row.worstScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
                   class="text-weight-bold font-chip q-mb-xs style-fit-content"
                 >
-                  AI Score: {{ props.row.aiScore }}
+                  AI Score: {{ props.row.worstScore }}
                 </q-chip>
                 <span class="text-caption text-grey-8 text-weight-medium">
-                  {{ props.row.aiAnalysis }}
+                  {{ props.row.aiSummary }}
                 </span>
               </div>
+            </q-td>
+          </template>
+
+          <template #body-cell-timestamp="props">
+            <q-td :props="props">
+              <span class="text-weight-medium text-grey-9">
+                {{ formatDateTime(props.row.latestTimestamp) }}
+              </span>
             </q-td>
           </template>
 
@@ -89,15 +108,15 @@
               <div
                 :class="[
                   'status-pill',
-                  props.row.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                  props.row.overallStatus === 'Resolved' ? 'status-handled' : 'status-pending',
                 ]"
               >
                 <q-icon
-                  :name="props.row.status === 'Resolved' ? 'check_circle' : 'pending'"
+                  :name="props.row.overallStatus === 'Resolved' ? 'check_circle' : 'pending'"
                   size="16px"
                   class="q-mr-xs"
                 />
-                <span>{{ props.row.status }}</span>
+                <span>{{ props.row.overallStatus }}</span>
               </div>
             </q-td>
           </template>
@@ -111,20 +130,9 @@
                   dense
                   color="primary"
                   icon="visibility"
-                  @click="openDetailModal(props.row)"
+                  @click="goToDetail(props.row)"
                 >
-                  <q-tooltip>View Report Details</q-tooltip>
-                </q-btn>
-
-                <q-btn
-                  flat
-                  round
-                  dense
-                  color="orange-9"
-                  icon="edit"
-                  @click="openEditModal(props.row)"
-                >
-                  <q-tooltip>Edit Handling Status</q-tooltip>
+                  <q-tooltip>View Reports for this Destination</q-tooltip>
                 </q-btn>
               </div>
             </q-td>
@@ -137,49 +145,36 @@
                   <div
                     :class="[
                       'status-pill',
-                      props.row.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                      props.row.overallStatus === 'Resolved' ? 'status-handled' : 'status-pending',
                     ]"
                   >
                     <q-icon
-                      :name="props.row.status === 'Resolved' ? 'check_circle' : 'pending'"
+                      :name="props.row.overallStatus === 'Resolved' ? 'check_circle' : 'pending'"
                       size="14px"
                       class="q-mr-xs"
                     />
-                    <span>{{ props.row.status }}</span>
+                    <span>{{ props.row.overallStatus }}</span>
                   </div>
-                  <div class="row items-center q-gutter-x-xs">
-                    <q-btn
-                      flat
-                      round
-                      dense
-                      color="primary"
-                      icon="visibility"
-                      size="sm"
-                      @click="openDetailModal(props.row)"
-                    />
-                    <q-btn
-                      flat
-                      round
-                      dense
-                      color="orange-9"
-                      icon="edit"
-                      size="sm"
-                      @click="openEditModal(props.row)"
-                    />
-                  </div>
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    color="primary"
+                    icon="visibility"
+                    size="sm"
+                    @click="goToDetail(props.row)"
+                  />
                 </div>
 
                 <div class="row items-center q-gutter-x-sm q-mb-sm">
-                  <div class="table-img-wrapper cursor-pointer" @click="openDetailModal(props.row)">
+                  <div class="table-img-wrapper cursor-pointer" @click="goToDetail(props.row)">
                     <ProxyImage :src="props.row.image" :alt="props.row.location" class="table-img" />
                   </div>
                   <div class="column">
-                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{
-                      props.row.location
-                    }}</span>
-                    <span class="text-caption text-grey-6" style="font-size: 11px">{{
-                      props.row.timestamp
-                    }}</span>
+                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{ props.row.location }}</span>
+                    <span class="text-caption text-grey-6" style="font-size: 11px">
+                      {{ props.row.latestTimestamp }}
+                    </span>
                   </div>
                 </div>
 
@@ -187,17 +182,13 @@
                   <q-chip
                     dense
                     size="sm"
-                    :class="
-                      props.row.aiScore >= 0.5
-                        ? 'bg-red-1 text-negative'
-                        : 'bg-green-1 text-positive'
-                    "
+                    :class="props.row.worstScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
                     class="text-weight-bold font-chip q-mb-xs"
                   >
-                    AI Score: {{ props.row.aiScore }}
+                    AI Score: {{ props.row.worstScore }}
                   </q-chip>
                   <div class="text-caption text-grey-8 text-weight-medium">
-                    {{ props.row.aiAnalysis }}
+                    {{ props.row.aiSummary }}
                   </div>
                 </div>
               </q-card>
@@ -206,201 +197,27 @@
         </q-table>
       </q-card>
     </div>
-
-    <q-dialog v-model="showDetailModal">
-      <q-card style="width: 600px; max-width: 90vw" class="rounded-borders-lg q-pb-lg">
-        <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold q-pa-sm">
-            Report Details - {{ selectedReport?.location }}
-          </div>
-          <q-btn flat round dense icon="close" v-close-popup color="white" />
-        </q-card-section>
-
-        <q-card-section class="q-pa-lg relative-position" v-if="selectedReport">
-          <q-inner-loading :showing="isLoadingDetail">
-            <q-spinner-dots size="40px" color="primary" />
-          </q-inner-loading>
-          <div class="modal-img-container q-mb-md">
-            <ProxyImage :src="selectedReport.image" :alt="selectedReport.location" class="modal-img-blur" />
-            <ProxyImage :src="selectedReport.image" :alt="selectedReport.location" class="modal-img" />
-          </div>
-
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Destination Location</div>
-              <div class="text-subtitle2 text-weight-bold text-grey-9">
-                {{ selectedReport.location }}
-              </div>
-            </div>
-
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Report Time</div>
-              <div class="text-subtitle2 text-weight-bold text-grey-9">
-                {{ selectedReport.timestamp }}
-              </div>
-            </div>
-
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">AI Analysis Result</div>
-              <div class="text-subtitle2 text-weight-bold text-primary">
-                {{ selectedReport.aiAnalysis }} (Score: {{ selectedReport.aiScore }})
-              </div>
-            </div>
-
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Handling Status</div>
-              <div>
-                <div
-                  :class="[
-                    'status-pill',
-                    selectedReport.status === 'Resolved' ? 'status-handled' : 'status-pending',
-                  ]"
-                  class="q-mt-xs"
-                >
-                  <q-icon
-                    :name="selectedReport.status === 'Resolved' ? 'check_circle' : 'pending'"
-                    size="16px"
-                    class="q-mr-xs"
-                  />
-                  <span>{{ selectedReport.status }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-12" v-if="selectedReport.reporterNotes">
-              <div class="text-caption text-grey-7">Reporter Notes</div>
-              <div
-                class="text-body2 text-grey-8 bg-blue-1 q-pa-sm rounded-borders text-italic"
-                style="border: 1px solid #bfdbfe"
-              >
-                "{{ selectedReport.reporterNotes }}"
-              </div>
-            </div>
-
-            <div class="col-12" v-if="selectedReport.notes">
-              <div class="text-caption text-grey-7">Admin Notes</div>
-              <div class="text-body2 text-grey-8 bg-grey-2 q-pa-sm rounded-borders">
-                {{ selectedReport.notes }}
-              </div>
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pa-md bg-grey-1">
-          <q-btn flat no-caps label="Close" color="grey-8" v-close-popup />
-          <q-btn
-            color="primary"
-            label="Change Status"
-            icon="edit"
-            no-caps
-            style="border-radius: 12px"
-            @click="switchFromDetailToEdit"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <q-dialog v-model="showEditModal">
-      <q-card style="width: 480px; max-width: 90vw" class="rounded-borders-lg q-pb-md">
-        <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
-          <div class="text-subtitle1 text-weight-bold">Edit Handling Status</div>
-          <q-btn flat round dense icon="close" v-close-popup color="white" />
-        </q-card-section>
-
-        <q-card-section class="q-pa-lg" v-if="editingReport">
-          <div class="text-subtitle2 text-grey-9 q-mb-xs">
-            Location: <span class="text-weight-bold">{{ editingReport.location }}</span>
-          </div>
-          <div class="text-caption text-grey-6 q-mb-md">
-            Update report status to "Resolved" once cleaning is completed by ground staff.
-          </div>
-
-          <q-form @submit.prevent="saveStatus">
-            <div class="q-mb-md">
-              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">Report Status</div>
-              <q-select
-                v-model="editForm.status"
-                :options="['Pending', 'Resolved']"
-                outlined
-                dense
-                emit-value
-                map-options
-              />
-            </div>
-
-            <div class="q-mb-md">
-              <div class="text-caption text-weight-bold text-grey-8 q-mb-xs">
-                Admin Notes (Optional)
-              </div>
-              <q-input
-                v-model="editForm.notes"
-                type="textarea"
-                outlined
-                rows="3"
-                placeholder="Example: Cleaning team resolved waste issue at location at 16:00 WIB."
-                dense
-              />
-            </div>
-
-            <div class="row justify-end q-gutter-x-sm q-mt-md">
-              <q-btn flat label="Cancel" no-caps color="grey-8" v-close-popup />
-              <q-btn
-                type="submit"
-                color="primary"
-                no-caps
-                style="border-radius: 12px"
-                label="Save Changes"
-                icon="save"
-                :loading="isSubmittingEditStatus"
-              />
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <StatusDialog
-      v-model="showStatusFeedback"
-      :type="feedbackConfig.type"
-      :title="feedbackConfig.title"
-      :message="feedbackConfig.message"
-    />
   </q-page>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from 'boot/axios'
-import StatusDialog from 'components/StatusDialog.vue'
 import ProxyImage from 'components/ProxyImage.vue'
-
 import report1Img from 'assets/report1.jpg'
+
+const router = useRouter()
 
 const isLoading = ref(false)
 const filterSearch = ref('')
 const filterStatus = ref('All')
+
 const statusOptions = [
   { label: 'All Statuses', value: 'All' },
   { label: 'Pending', value: 'Pending' },
   { label: 'Resolved', value: 'Resolved' },
 ]
-
-const showDetailModal = ref(false)
-const selectedReport = ref(null)
-
-const showEditModal = ref(false)
-const editingReport = ref(null)
-const editForm = ref({
-  status: 'Resolved',
-  notes: '',
-})
-
-const showStatusFeedback = ref(false)
-const feedbackConfig = ref({
-  type: 'success',
-  title: '',
-  message: '',
-})
 
 const columns = [
   {
@@ -420,147 +237,116 @@ const columns = [
   {
     name: 'analisis',
     label: 'AI Analysis',
-    field: 'aiAnalysis',
+    field: 'aiSummary',
     align: 'left',
   },
   {
     name: 'timestamp',
     label: 'Report Time',
-    field: 'timestamp',
+    field: 'latestTimestamp',
     align: 'left',
     sortable: true,
   },
   {
     name: 'status',
     label: 'Handling Status',
-    field: 'status',
+    field: 'overallStatus',
     align: 'center',
     sortable: true,
   },
   {
     name: 'aksi',
     label: 'Actions',
-    field: 'id',
+    field: 'destinationKey',
     align: 'center',
   },
 ]
 
-const reports = ref([])
+const allReports = ref([])
 const destinationList = ref([])
 
 async function fetchDestinations() {
   try {
     let res
-    try {
-      res = await api.get('/destinations/')
-    } catch {
-      res = await api.get('/destinations')
-    }
+    try { res = await api.get('/destinations/') } catch { res = await api.get('/destinations') }
     const raw = res.data?.data || res.data || []
     destinationList.value = Array.isArray(raw) ? raw : []
   } catch (e) {
-    console.error('Failed to fetch destinations list in MonitoringPage:', e)
+    console.error('Failed to fetch destinations:', e)
   }
 }
 
 function formatReportImage(url) {
   if (!url || typeof url !== 'string') return report1Img
-
-  // Jika URL absolut dari ngrok dan mengandung /static/, proxy lewat Vercel rewrite
-  if (
-    (url.startsWith('http://') || url.startsWith('https://')) &&
-    url.includes('ngrok') &&
-    url.includes('/static/')
-  ) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath // → /static/... → di-proxy oleh vercel.json
+  if ((url.startsWith('http://') || url.startsWith('https://')) && url.includes('ngrok') && url.includes('/static/')) {
+    return url.substring(url.indexOf('/static/'))
   }
-
-  // Jika path relatif sudah /static/
-  if (url.includes('/static/')) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath
-  }
-
-  // data:image URI langsung dipakai
-  if (url.startsWith('data:image/')) {
-    return url
-  }
-
-  // URL absolut non-ngrok → pakai langsung
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url
-  }
-
-  // Path relatif lainnya
+  if (url.includes('/static/')) return url.substring(url.indexOf('/static/'))
+  if (url.startsWith('data:image/') || url.startsWith('http://') || url.startsWith('https://')) return url
   return url.startsWith('/') ? url : `/${url}`
 }
 
 function formatStatus(st) {
   if (!st) return 'Pending'
-  const str = String(st).toLowerCase()
-  if (str === 'resolved' || str === 'handled' || str === 'clean') return 'Resolved'
-  return 'Pending'
+  const s = String(st).toLowerCase()
+  return (s === 'resolved' || s === 'handled') ? 'Resolved' : 'Pending'
 }
 
 function resolveLocationName(item) {
-  let locationName = item.destination_name || item.destination?.name || item.location || item.name || ''
-
-  if (!locationName && item.destination_id) {
-    const foundDest = destinationList.value.find(
-      (d) => (d.id || d.destination_id) == item.destination_id,
-    )
-    if (foundDest) {
-      locationName = foundDest.name || foundDest.destination_name || foundDest.title || ''
-    }
+  let name = item.destination_name || item.destination?.name || item.location || item.name || ''
+  if (!name && item.destination_id) {
+    const found = destinationList.value.find((d) => (d.id || d.destination_id) == item.destination_id)
+    if (found) name = found.name || ''
   }
-
-  if (!locationName && item.destination_id) {
-    locationName = `Destination #${item.destination_id}`
-  }
-
-  return locationName || '-'
+  if (!name && item.destination_id) name = `Destination #${item.destination_id}`
+  return name || '-'
 }
 
-function formatReportDate(dateStr) {
+function formatDateTime(dateStr) {
   if (!dateStr || dateStr === '-') return '-'
+  const str = String(dateStr).trim()
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) return str
   try {
-    const d = new Date(dateStr)
-    if (isNaN(d.getTime())) return dateStr
+    let d
+    if (str.includes('T') && !str.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(str)) {
+      d = new Date(str + 'Z')
+    } else {
+      d = new Date(str)
+    }
+    if (isNaN(d.getTime())) {
+      return str.replace('T', ' ')
+    }
     const day = String(d.getDate()).padStart(2, '0')
     const month = String(d.getMonth() + 1).padStart(2, '0')
     const year = d.getFullYear()
-    return `${day}/${month}/${year}`
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    const seconds = String(d.getSeconds()).padStart(2, '0')
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`
   } catch {
-    return dateStr
+    return str.replace('T', ' ')
   }
 }
 
-function mapReportItem(item) {
-  const scoreVal = item.score ?? item.ai_score ?? item.aiScore ?? 0
-  const countVal = item.detected_count ?? item.detectedCount
-  let aiText = item.ai_analysis || item.aiAnalysis || item.analysis || ''
-  if (!aiText) {
-    if (countVal !== undefined && countVal !== null) {
-      aiText = countVal > 0 ? `${countVal} waste objects detected` : 'No waste detected (Clean)'
-    } else {
-      aiText = Number(scoreVal) >= 0.5 ? 'Dirty area detected' : 'Clean area'
-    }
+function mapReport(item) {
+  const score = item.score ?? item.ai_score ?? item.aiScore ?? 0
+  const count = item.detected_count ?? item.detectedCount
+  let analysis = item.ai_analysis || item.aiAnalysis || ''
+  if (!analysis) {
+    analysis = (count !== undefined && count !== null)
+      ? (count > 0 ? `${count} waste objects detected` : 'No waste detected (Clean)')
+      : (Number(score) >= 0.5 ? 'Dirty area detected' : 'Clean area')
   }
-
-  const rawDate = item.created_at || item.timestamp || item.reported_at || '-'
-
   return {
     id: item.id,
     destination_id: item.destination_id,
-    user_id: item.user_id,
     location: resolveLocationName(item),
     image: formatReportImage(item.image_url || item.image || item.photo),
-    aiScore: scoreVal,
-    aiAnalysis: aiText,
-    timestamp: formatReportDate(rawDate),
+    aiScore: score,
+    aiAnalysis: analysis,
+    timestamp: formatDateTime(item.created_at || item.timestamp || item.reported_at || '-'),
     status: formatStatus(item.status),
-    reporterNotes: item.user_notes || item.reporter_notes || item.reporterNotes || item.description || '',
+    reporterNotes: item.user_notes || item.reporter_notes || item.description || '',
     notes: item.admin_notes || item.notes || '',
     raw: item,
   }
@@ -571,18 +357,15 @@ async function fetchReports() {
   try {
     let res
     try {
-      res = await api.get('/reports/')
-    } catch {
       res = await api.get('/reports')
+    } catch {
+      res = await api.get('/reports/')
     }
-
-    const rawData = res.data?.data || res.data || []
-    const list = Array.isArray(rawData) ? rawData : []
-
-    reports.value = list.map((item) => mapReportItem(item))
+    const raw = res.data?.data || res.data || []
+    allReports.value = (Array.isArray(raw) ? raw : []).map(mapReport)
   } catch (err) {
     console.error('Failed to fetch reports:', err)
-    reports.value = []
+    allReports.value = []
   } finally {
     isLoading.value = false
   }
@@ -593,150 +376,68 @@ onMounted(async () => {
   await fetchReports()
 })
 
-const filteredReports = computed(() => {
-  return reports.value.filter((item) => {
-    const matchSearch =
-      item.location.toLowerCase().includes(filterSearch.value.toLowerCase()) ||
-      item.aiAnalysis.toLowerCase().includes(filterSearch.value.toLowerCase())
-    const matchStatus = filterStatus.value === 'All' || item.status === filterStatus.value
+const destinationRows = computed(() => {
+  const map = new Map()
 
+  allReports.value.forEach((rep) => {
+    const key = rep.destination_id ? String(rep.destination_id) : rep.location
+    if (!map.has(key)) {
+      map.set(key, {
+        destinationKey: key,
+        destinationId: rep.destination_id,
+        location: rep.location,
+        image: rep.image,
+        reports: [],
+        pendingCount: 0,
+        resolvedCount: 0,
+        worstScore: 0,
+        latestTimestamp: rep.timestamp,
+      })
+    }
+    const g = map.get(key)
+    g.reports.push(rep)
+    if (rep.status === 'Resolved') g.resolvedCount++
+    else g.pendingCount++
+    if (Number(rep.aiScore) > Number(g.worstScore)) {
+      g.worstScore = rep.aiScore
+      g.image = rep.image
+      g.latestTimestamp = rep.timestamp
+    }
+  })
+
+  return Array.from(map.values()).map((g) => ({
+    ...g,
+    overallStatus: g.pendingCount > 0 ? 'Pending' : 'Resolved',
+    totalReports: g.reports.length,
+    aiSummary: g.pendingCount > 0
+      ? `${g.pendingCount} waste report(s) unresolved`
+      : `All ${g.resolvedCount} report(s) resolved`,
+  }))
+})
+
+const filteredRows = computed(() => {
+  return destinationRows.value.filter((row) => {
+    const q = filterSearch.value.trim().toLowerCase()
+    const matchSearch = !q || row.location.toLowerCase().includes(q)
+    const matchStatus = filterStatus.value === 'All' || row.overallStatus === filterStatus.value
     return matchSearch && matchStatus
   })
 })
 
-const isLoadingDetail = ref(false)
-
-const openDetailModal = async (report) => {
-  selectedReport.value = report
-  showDetailModal.value = true
-  isLoadingDetail.value = true
-
-  const reportId = report.id
-  try {
-    let res
-    try {
-      res = await api.get(`/reports/${reportId}`)
-    } catch {
-      res = await api.get(`/reports/${reportId}/`)
-    }
-
-    const detail = res.data?.data || res.data || {}
-    if (detail && typeof detail === 'object') {
-      const mapped = mapReportItem({ ...report.raw, ...detail })
-      selectedReport.value = {
-        ...report,
-        ...mapped,
-        location: mapped.location !== '-' ? mapped.location : report.location,
-      }
-    }
-  } catch (err) {
-    console.error(`Failed to fetch report detail for ID ${reportId}:`, err)
-  } finally {
-    isLoadingDetail.value = false
-  }
-}
-
-const openEditModal = (report) => {
-  editingReport.value = report
-  editForm.value.status = report.status
-  editForm.value.notes = report.notes || ''
-  showEditModal.value = true
-}
-
-const switchFromDetailToEdit = () => {
-  if (selectedReport.value) {
-    const reportToEdit = selectedReport.value
-    showDetailModal.value = false
-    openEditModal(reportToEdit)
-  }
-}
-
-const isSubmittingEditStatus = ref(false)
-
-const saveStatus = async () => {
-  if (!editingReport.value) return
-  isSubmittingEditStatus.value = true
-
-  const reportId = editingReport.value.id
-  const targetStatus = editForm.value.status
-  const targetNotes = editForm.value.notes || ''
-
-  const payload = {
-    status: targetStatus.toLowerCase(),
-    admin_notes: targetNotes,
-    notes: targetNotes,
-  }
-
-  const reqConfig = {
-    headers: {
-      'ngrok-skip-browser-warning': 'true',
-    },
-  }
-
-  let apiSuccess = false
-  let lastError = null
-
-  try {
-    try {
-      await api.put(`/reports/${reportId}`, payload, reqConfig)
-      apiSuccess = true
-    } catch {
-      try {
-        await api.put(`/reports/${reportId}/`, payload, reqConfig)
-        apiSuccess = true
-      } catch (e) {
-        lastError = e
-      }
-    }
-  } catch (err) {
-    lastError = err
-  }
-
-  isSubmittingEditStatus.value = false
-
-  const index = reports.value.findIndex((r) => r.id === reportId)
-  if (index !== -1) {
-    reports.value[index].status = targetStatus
-    reports.value[index].notes = targetNotes
-  }
-  if (selectedReport.value && selectedReport.value.id === reportId) {
-    selectedReport.value.status = targetStatus
-    selectedReport.value.notes = targetNotes
-  }
-
-  const reportLoc = editingReport.value?.location || 'The report'
-  showEditModal.value = false
-
-  if (apiSuccess) {
-    feedbackConfig.value = {
-      type: 'success',
-      title: 'Report Status Updated',
-      message: `Status for "${reportLoc}" has been successfully updated to "${targetStatus}".`,
-    }
-  } else {
-    console.error('Error updating report status on server:', lastError)
-    const errStatus = lastError?.response?.status ? ` (HTTP ${lastError.response.status})` : ''
-    feedbackConfig.value = {
-      type: 'error',
-      title: 'Failed to Update Status (Server Error)',
-      message: `Gagal memperbarui status di server backend${errStatus}. Tampilan lokal telah diperbarui secara sementara.`,
-    }
-  }
-  showStatusFeedback.value = true
+function goToDetail(row) {
+  sessionStorage.setItem(
+    `monitoring_dest_${row.destinationKey}`,
+    JSON.stringify({ location: row.location, destinationId: row.destinationId, reports: row.reports })
+  )
+  router.push(`/admin/monitoring/${row.destinationKey}`)
 }
 </script>
 
 <style scoped lang="scss">
 .page-container {
   padding: 2.5rem 1.5rem;
-
-  @media (max-width: 768px) {
-    padding: 1.5rem 1rem;
-  }
-
-  @media (max-width: 480px) {
-    padding: 1rem 0.75rem;
-  }
+  @media (max-width: 768px) { padding: 1.5rem 1rem; }
+  @media (max-width: 480px) { padding: 1rem 0.75rem; }
 }
 
 .max-width-container {
@@ -747,18 +448,12 @@ const saveStatus = async () => {
 .font-header {
   font-size: 1.85rem;
   line-height: 1.2;
-
-  @media (max-width: 600px) {
-    font-size: 1.4rem;
-  }
+  @media (max-width: 600px) { font-size: 1.4rem; }
 }
 
 .font-subtitle {
   font-size: 0.95rem;
-
-  @media (max-width: 600px) {
-    font-size: 0.85rem;
-  }
+  @media (max-width: 600px) { font-size: 0.85rem; }
 }
 
 :deep(.q-field__control) {
@@ -773,10 +468,7 @@ const saveStatus = async () => {
 .filter-select {
   width: 100%;
   min-width: 170px;
-
-  @media (max-width: 599px) {
-    margin-top: 0.5rem;
-  }
+  @media (max-width: 599px) { margin-top: 0.5rem; }
 }
 
 .table-card {
@@ -795,97 +487,24 @@ const saveStatus = async () => {
   border: 1px solid #e2e8f0;
   display: inline-block;
   transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
+  &:hover { transform: scale(1.05); }
+  .table-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-}
-
-.table-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.modal-img-container {
-  width: 100%;
-  height: 320px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  background-color: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.modal-img-blur {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(20px) brightness(0.5);
-  transform: scale(1.15);
-  pointer-events: none;
-}
-
-.modal-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  border-radius: 8px;
-}
-
-.style-fit-content {
-  width: fit-content;
-}
-
-.rounded-borders-lg {
-  border-radius: 16px;
 }
 
 .status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  letter-spacing: 0.3px;
 }
 
-.status-handled {
-  background-color: #f2f6e9;
-  color: #5f702e;
-  border: 1px solid #c8d89c;
-}
-
-.status-pending {
-  background-color: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
-}
-</style>
-
-<style lang="scss">
-.custom-monitoring-table {
-  thead tr th {
-    font-weight: 700 !important;
-    font-size: 13px !important;
-    color: #475569 !important;
-    background-color: #f8fafc !important;
-  }
-
-  tbody tr td {
-    font-size: 13px !important;
-  }
-}
+.status-pending { background-color: #fef3c7; color: #b45309; }
+.status-handled { background-color: #dcfce7; color: #15803d; }
 </style>

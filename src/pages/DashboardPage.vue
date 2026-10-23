@@ -20,6 +20,53 @@
         </div>
       </div>
 
+      <div class="row q-col-gutter-md q-mb-lg" v-if="pendingDirtyCount > 0 || pendingCleanCount > 0">
+        <div class="col-12 col-sm-6" v-if="pendingDirtyCount > 0">
+          <q-card
+            flat
+            class="notif-card notif-card--dirty cursor-pointer"
+            @click="router.push('/admin/monitoring')"
+          >
+            <div class="row items-center q-gutter-x-md">
+              <div class="notif-icon-wrapper bg-red-1">
+                <q-icon name="report_problem" size="26px" color="negative" />
+              </div>
+              <div class="col">
+                <div class="text-caption text-grey-7 text-weight-bold">UNRESOLVED WASTE REPORTS</div>
+                <div class="row items-center q-gutter-x-xs q-mt-xs">
+                  <span class="notif-count text-negative">{{ pendingDirtyCount }}</span>
+                  <span class="text-body2 text-grey-8">pending resolution</span>
+                </div>
+              </div>
+              <q-btn flat round dense icon="chevron_right" color="grey-6" />
+            </div>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6" v-if="pendingCleanCount > 0">
+          <q-card
+            flat
+            class="notif-card notif-card--clean cursor-pointer"
+            @click="router.push('/admin/clean-reports')"
+          >
+            <div class="row items-center q-gutter-x-md">
+              <div class="notif-icon-wrapper bg-amber-1">
+                <q-icon name="pending_actions" size="26px" color="amber-9" />
+              </div>
+              <div class="col">
+                <div class="text-caption text-grey-7 text-weight-bold">CLEAN REPORTS</div>
+                <div class="row items-center q-gutter-x-xs q-mt-xs">
+                  <span class="notif-count text-amber-9">{{ pendingCleanCount }}</span>
+                  <span class="text-body2 text-grey-8">pending verification</span>
+                </div>
+              </div>
+              <q-btn flat round dense icon="chevron_right" color="grey-6" />
+            </div>
+          </q-card>
+        </div>
+      </div>
+
+
       <q-card flat class="map-card q-pa-md q-mb-lg">
         <div class="text-h6 text-weight-bold text-grey-9 q-mb-md">Real-time Map</div>
         <div id="realtime-map" class="map-container"></div>
@@ -126,14 +173,37 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from 'boot/axios'
+import { useCleanReportsStore } from 'src/stores/cleanReports'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import apexchart from 'vue3-apexcharts'
 import ProxyImage from 'components/ProxyImage.vue'
 
 import report1Img from 'assets/report1.jpg'
+
+const router = useRouter()
+const cleanStore = useCleanReportsStore()
+
+const pendingDirtyCount = ref(0)
+async function fetchPendingDirtyCount() {
+  try {
+    let res
+    try { res = await api.get('/reports') } catch { res = await api.get('/reports/') }
+    const raw = res.data?.data || res.data || []
+    const list = Array.isArray(raw) ? raw : []
+    pendingDirtyCount.value = list.filter((r) => {
+      const s = String(r.status || '').toLowerCase()
+      return s !== 'resolved' && s !== 'handled'
+    }).length
+  } catch (e) {
+    console.warn('Failed to fetch pending dirty count:', e)
+  }
+}
+
+const pendingCleanCount = computed(() => cleanStore.pendingCleanCount)
 
 let map = null
 
@@ -338,9 +408,9 @@ async function fetchTotalReportsCount() {
   try {
     let res
     try {
-      res = await api.get('/reports/')
-    } catch {
       res = await api.get('/reports')
+    } catch {
+      res = await api.get('/reports/')
     }
     const raw = res.data?.data || res.data || []
     const list = Array.isArray(raw) ? raw : []
@@ -368,34 +438,27 @@ function formatDashboardDate(dateStr) {
 function formatDashboardImage(url) {
   if (!url || typeof url !== 'string') return report1Img
 
-  // Jika URL absolut dari ngrok dan mengandung /static/, proxy lewat Vercel rewrite
-  // supaya header ngrok-skip-browser-warning dikirim server-side (vercel.json headers)
   if (
     (url.startsWith('http://') || url.startsWith('https://')) &&
     url.includes('ngrok') &&
     url.includes('/static/')
   ) {
     const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath // → /static/... → di-proxy oleh vercel.json
+    return staticPath
   }
 
-  // Jika path relatif sudah /static/
   if (url.includes('/static/')) {
     const staticPath = url.substring(url.indexOf('/static/'))
     return staticPath
   }
 
-  // data:image URI langsung dipakai
   if (url.startsWith('data:image/')) {
     return url
   }
-
-  // URL absolut non-ngrok → pakai langsung
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url
   }
 
-  // Path relatif lainnya
   return url.startsWith('/') ? url : `/${url}`
 }
 
@@ -427,7 +490,7 @@ async function fetchLatestReports() {
       res = await api.get('/reports/latest')
     } catch {
       try {
-        res = await api.get('/reports/latest/')
+        res = await api.get('/reports')
       } catch {
         res = await api.get('/reports/')
       }
@@ -545,14 +608,13 @@ function renderMapSpots() {
           Status: <b style="color: ${loc.color};">${loc.status}</b>
         </div>
         <div style="font-size: 11px; color: #64748b;">
-          Total Laporan: <b>${loc.laporanCount ?? 0}</b>
+          Total Reports: <b>${loc.laporanCount ?? 0}</b>
         </div>
       </div>
     `
 
     m.bindPopup(popupContent(''))
 
-    // Jika ada gambar, fetch via axios agar header ngrok-skip-browser-warning terkirim
     if (loc.image && loc.image.includes('/static/')) {
       try {
         const { default: axios } = await import('axios')
@@ -563,7 +625,7 @@ function renderMapSpots() {
         const blobUrl = URL.createObjectURL(data)
         m.setPopupContent(popupContent(blobUrl))
       } catch {
-        // Tetap tampil popup tanpa gambar jika gagal
+        // Ignore image loading error in popup
       }
     }
 
@@ -575,7 +637,7 @@ function renderMapSpots() {
     try {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
     } catch {
-      // ignore
+      // Ignore fitBounds if map bounds are invalid
     }
   }
 }
@@ -591,43 +653,7 @@ const batamBoundaryCoordinates = [
   [1.05, 103.88],
 ]
 
-const locationMarkers = [
-  {
-    name: 'Jembatan Barelang',
-    status: 'Clean',
-    color: '#7D9240',
-    lat: 0.9855,
-    lng: 104.0415,
-  },
-  {
-    name: 'Pantai Nongsa',
-    status: 'Clean',
-    color: '#7D9240',
-    lat: 1.1895,
-    lng: 104.104,
-  },
-  {
-    name: 'Nagoya Hill',
-    status: 'Clean',
-    color: '#7D9240',
-    lat: 1.144,
-    lng: 104.015,
-  },
-  {
-    name: 'Pantai Melayu',
-    status: 'Needs Attention',
-    color: '#F59E0B',
-    lat: 0.942,
-    lng: 104.062,
-  },
-  {
-    name: 'Welcome to Batam',
-    status: 'Needs Attention',
-    color: '#F59E0B',
-    lat: 1.1275,
-    lng: 104.0535,
-  },
-]
+const locationMarkers = []
 
 const createCustomMarkerIcon = (status, name, color) => {
   return L.divIcon({
@@ -650,6 +676,8 @@ const createCustomMarkerIcon = (status, name, color) => {
 }
 
 onMounted(async () => {
+  cleanStore.loadFromStorage()
+  await fetchPendingDirtyCount()
   await fetchDestinationsForDashboard()
   await fetchLatestReports()
   await fetchTotalReportsCount()
@@ -855,6 +883,44 @@ onUnmounted(() => {
 
 .no-underline {
   text-decoration: none;
+}
+
+.notif-card {
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  border: 1.5px solid transparent;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
+  }
+
+  &--dirty {
+    background-color: #fff5f5;
+    border-color: #fecaca;
+  }
+
+  &--clean {
+    background-color: #fffbeb;
+    border-color: #fde68a;
+  }
+}
+
+.notif-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-count {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
 }
 </style>
 

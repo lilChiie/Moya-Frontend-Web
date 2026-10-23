@@ -339,7 +339,6 @@ async function saveForm() {
 
   try {
     if (isEditing.value) {
-      // Edit API call
       try {
         await api.put(`/tourism/${form.value.id}/`, { name: inputName })
       } catch {
@@ -356,7 +355,6 @@ async function saveForm() {
         message: `Tourism type "${inputName}" has been updated successfully.`,
       }
     } else {
-      // Create API call
       try {
         await api.post('/tourism/', { name: inputName })
       } catch {
