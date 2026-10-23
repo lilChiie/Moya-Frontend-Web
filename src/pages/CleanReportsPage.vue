@@ -1,18 +1,15 @@
 <template>
   <q-page class="page-container bg-grey-2">
     <div class="max-width-container">
+      <!-- Header Section -->
       <div class="row items-center justify-between q-mb-md">
         <div class="col-12 col-md-auto q-mb-sm-res">
-          <div class="row items-center q-gutter-x-sm">
-            <div>
-              <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
-                Clean Reports
-              </h1>
-              <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
-                Cleanliness reports submitted by mobile users
-              </p>
-            </div>
-          </div>
+          <h1 class="text-weight-bold text-grey-9 q-ma-none font-header">
+            Clean Reports
+          </h1>
+          <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
+            Daftar laporan kotor yang telah menerima bukti kebersihan dari pengguna
+          </p>
         </div>
 
         <div class="col-12 col-md-auto row items-center q-gutter-sm">
@@ -22,7 +19,7 @@
             round
             icon="refresh"
             color="grey-8"
-            :loading="cleanStore.isLoading"
+            :loading="isLoading"
             @click="refreshData"
           >
             <q-tooltip>Refresh Data</q-tooltip>
@@ -30,11 +27,51 @@
         </div>
       </div>
 
+      <!-- Quick Summary Cards -->
+      <div class="row q-col-gutter-md q-mb-lg">
+        <div class="col-12 col-sm-6 col-md-4">
+          <q-card flat bordered class="stat-card bg-white q-pa-md rounded-borders-lg">
+            <div class="row items-center justify-between">
+              <div>
+                <div class="text-caption text-grey-7 text-weight-medium">Laporan Berbukti Bersih</div>
+                <div class="text-h5 text-weight-bold text-grey-9 q-mt-xs">{{ totalDirtyWithClean }}</div>
+              </div>
+              <q-avatar icon="fact_check" color="blue-1" text-color="primary" size="48px" />
+            </div>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-4">
+          <q-card flat bordered class="stat-card bg-white q-pa-md rounded-borders-lg">
+            <div class="row items-center justify-between">
+              <div>
+                <div class="text-caption text-grey-7 text-weight-medium">Total Foto Bukti Bersih</div>
+                <div class="text-h5 text-weight-bold text-positive q-mt-xs">{{ cleanStore.cleanReports.length }}</div>
+              </div>
+              <q-avatar icon="verified" color="green-1" text-color="positive" size="48px" />
+            </div>
+          </q-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-4">
+          <q-card flat bordered class="stat-card bg-white q-pa-md rounded-borders-lg">
+            <div class="row items-center justify-between">
+              <div>
+                <div class="text-caption text-grey-7 text-weight-medium">Menunggu Penyelesaian (Pending)</div>
+                <div class="text-h5 text-weight-bold text-warning q-mt-xs">{{ pendingDirtyCount }}</div>
+              </div>
+              <q-avatar icon="pending_actions" color="amber-1" text-color="warning" size="48px" />
+            </div>
+          </q-card>
+        </div>
+      </div>
+
+      <!-- Filters Row -->
       <div class="row items-center justify-between q-col-gutter-sm q-mb-md">
         <div class="col-12 col-sm-7 col-md-5">
           <q-input
             v-model="searchQuery"
-            placeholder="Search destination or reporter name..."
+            placeholder="Cari destinasi, pelapor, atau catatan..."
             dense
             outlined
             bg-color="white"
@@ -49,7 +86,7 @@
           </q-input>
         </div>
 
-        <div class="col-12 col-sm-auto row justify-end">
+        <div class="col-12 col-sm-auto row items-center q-gutter-sm justify-end">
           <q-select
             v-model="statusFilter"
             :options="statusOptions"
@@ -67,741 +104,774 @@
         </div>
       </div>
 
-      <q-card flat class="table-card">
+      <!-- Main Clean Reports Table -->
+      <q-card flat class="table-card bg-white rounded-borders-lg q-pa-xs-res">
         <q-table
-          :rows="filteredReports"
+          :rows="filteredTableRows"
           :columns="columns"
-          row-key="id"
+          row-key="key"
           flat
-          :loading="cleanStore.isLoading || isSubmitting"
-          class="custom-monitoring-table"
+          :loading="isLoading"
+          class="custom-clean-table"
           :grid="$q.screen.xs"
           :pagination="{ rowsPerPage: 10 }"
+          no-data-label="Tidak ada laporan bukti bersih yang cocok"
         >
-          <template #body-cell-foto="props">
+          <!-- Lokasi & ID Laporan -->
+          <template #body-cell-location="props">
             <q-td :props="props">
-              <div class="table-img-wrapper cursor-pointer" @click="openImagePreview(props.row)">
-                <ProxyImage :src="props.row.image_url" :alt="props.row.destination_name" class="table-img" />
+              <div class="row items-center no-wrap q-gutter-x-xs">
+                <span class="text-weight-bold text-grey-9 ellipsis">{{ props.row.location }}</span>
+              </div>
+              <div class="row items-center q-gutter-x-xs q-mt-xs text-caption">
+                <span v-if="props.row.id && props.row.id !== '-'" class="text-weight-bold text-primary">
+                  #Laporan {{ props.row.id }}
+                </span>
+                <span v-if="props.row.id && props.row.id !== '-'" class="text-grey-5">•</span>
+                <span class="text-grey-6">{{ props.row.cleanReports.length }} bukti terlampir</span>
               </div>
             </q-td>
           </template>
 
-          <template #body-cell-reporter="props">
+          <!-- Foto Laporan Kotor -->
+          <template #body-cell-dirtyPhoto="props">
             <q-td :props="props">
-              <div class="text-weight-bold text-grey-9">{{ props.row.reporter_name }}</div>
-              <div class="text-caption text-grey-6">{{ props.row.reporter_role }}</div>
+              <div
+                class="table-img-wrapper cursor-pointer"
+                @click="openImageZoom(props.row.image, 'Laporan Kotor - ' + props.row.location)"
+              >
+                <ProxyImage :src="props.row.image" :alt="props.row.location" class="table-img" />
+                <div class="table-img-overlay">
+                  <q-icon name="zoom_in" color="white" size="18px" />
+                </div>
+              </div>
             </q-td>
           </template>
 
+          <!-- AI Analysis -->
+          <template #body-cell-dirtyAnalysis="props">
+            <q-td :props="props">
+              <div class="column">
+                <q-chip
+                  dense
+                  size="sm"
+                  :class="props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
+                  class="text-weight-bold font-chip q-mb-xs style-fit-content"
+                >
+                  AI Score: {{ props.row.aiScore }}
+                </q-chip>
+                <span class="text-caption text-grey-8 text-weight-medium line-clamp-2">
+                  {{ props.row.aiAnalysis }}
+                </span>
+              </div>
+            </q-td>
+          </template>
+
+          <!-- Timestamp -->
           <template #body-cell-timestamp="props">
             <q-td :props="props">
-              <div class="text-grey-9">{{ formatDateTime(props.row.created_at) }}</div>
+              <span class="text-weight-medium text-grey-9">
+                {{ formatDateTime(props.row.timestamp) }}
+              </span>
             </q-td>
           </template>
 
-          <template #body-cell-status="props">
+          <!-- Bukti Bersih Masuk -->
+          <template #body-cell-buktiBersih="props">
             <q-td :props="props">
-              <div :class="['status-pill', getStatusClass(props.row.status)]">
-                <q-icon :name="getStatusIcon(props.row.status)" size="14px" class="q-mr-xs" />
-                <span>{{ getStatusLabel(props.row.status) }}</span>
+              <div class="column items-center">
+                <q-chip
+                  dense
+                  clickable
+                  color="positive"
+                  text-color="white"
+                  icon="verified"
+                  class="cursor-pointer text-weight-bold shadow-1 hover-lift q-mb-xs"
+                  @click="openCleanProofsModal(props.row)"
+                >
+                  {{ props.row.cleanReports.length }} Bukti Bersih
+                </q-chip>
+                <span class="text-caption text-grey-6" style="font-size: 11px">
+                  Oleh: {{ props.row.latestReporter }}
+                </span>
               </div>
             </q-td>
           </template>
 
+          <!-- Status Penanganan Laporan Kotor -->
+          <template #body-cell-status="props">
+            <q-td :props="props">
+              <div
+                :class="[
+                  'status-pill',
+                  props.row.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                ]"
+              >
+                <q-icon
+                  :name="props.row.status === 'Resolved' ? 'check_circle' : 'pending'"
+                  size="15px"
+                  class="q-mr-xs"
+                />
+                <span>{{ props.row.status }}</span>
+              </div>
+            </q-td>
+          </template>
+
+          <!-- Aksi -->
           <template #body-cell-aksi="props">
             <q-td :props="props">
-              <div class="row items-center q-gutter-x-xs no-wrap justify-center">
+              <div class="row items-center justify-center q-gutter-x-xs no-wrap">
+                <q-btn
+                  unelevated
+                  dense
+                  no-caps
+                  color="primary"
+                  icon="photo_library"
+                  label="Lihat Bukti"
+                  class="rounded-btn q-px-sm text-weight-bold"
+                  @click="openCleanProofsModal(props.row)"
+                >
+                  <q-tooltip>Lihat foto bukti bersih dari pengguna</q-tooltip>
+                </q-btn>
+
                 <q-btn
                   flat
                   round
                   dense
-                  color="primary"
-                  icon="zoom_in"
-                  size="sm"
-                  @click="openImagePreview(props.row)"
+                  color="grey-8"
+                  icon="open_in_new"
+                  @click="goToMonitoring(props.row)"
                 >
-                  <q-tooltip>View Details & Photo</q-tooltip>
+                  <q-tooltip>Buka di Monitoring Destinasi</q-tooltip>
                 </q-btn>
-
-                <template v-if="isPending(props.row.status)">
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    color="positive"
-                    icon="check_circle"
-                    size="sm"
-                    @click="openVerifyDialog(props.row)"
-                  >
-                    <q-tooltip>Verify & Approve</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    color="negative"
-                    icon="cancel"
-                    size="sm"
-                    @click="openRejectDialog(props.row)"
-                  >
-                    <q-tooltip>Reject Report</q-tooltip>
-                  </q-btn>
-                  <q-btn
-                    flat
-                    dense
-                    no-caps
-                    color="secondary"
-                    icon="assessment"
-                    label="Inspect"
-                    size="sm"
-                    class="rounded-btn"
-                    @click="goVerify(props.row)"
-                  >
-                    <q-tooltip>Inspect destination monitoring</q-tooltip>
-                  </q-btn>
-                </template>
-
-                <template v-else-if="isVerified(props.row.status)">
-                  <q-chip
-                    dense
-                    color="green-1"
-                    text-color="positive"
-                    class="text-weight-bold q-ma-none"
-                  >
-                    <q-icon name="check" size="12px" class="q-mr-xs" />
-                    Verified
-                  </q-chip>
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    color="grey-7"
-                    icon="assessment"
-                    size="sm"
-                    @click="goVerify(props.row)"
-                  >
-                    <q-tooltip>View Destination Monitoring</q-tooltip>
-                  </q-btn>
-                </template>
-
-                <template v-else-if="isRejected(props.row.status)">
-                  <q-chip
-                    dense
-                    color="red-1"
-                    text-color="negative"
-                    class="text-weight-bold q-ma-none"
-                  >
-                    <q-icon name="close" size="12px" class="q-mr-xs" />
-                    Rejected
-                  </q-chip>
-                </template>
               </div>
             </q-td>
           </template>
 
+          <!-- Mobile Card View (Grid) -->
           <template #item="props">
-            <div class="q-pa-xs col-xs-12">
-              <q-card flat bordered class="q-pa-md bg-white rounded-borders-lg">
+            <div class="q-pa-xs col-xs-12 col-sm-6">
+              <q-card flat bordered class="q-pa-md rounded-borders-lg bg-white shadow-1">
                 <div class="row items-center justify-between q-mb-sm">
-                  <div :class="['status-pill', getStatusClass(props.row.status)]">
-                    <q-icon :name="getStatusIcon(props.row.status)" size="12px" class="q-mr-xs" />
-                    {{ getStatusLabel(props.row.status) }}
+                  <div
+                    :class="[
+                      'status-pill',
+                      props.row.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                    ]"
+                  >
+                    <q-icon
+                      :name="props.row.status === 'Resolved' ? 'check_circle' : 'pending'"
+                      size="14px"
+                      class="q-mr-xs"
+                    />
+                    <span>{{ props.row.status }}</span>
                   </div>
-                  <q-btn flat round dense color="primary" icon="zoom_in" size="sm" @click="openImagePreview(props.row)" />
-                </div>
-                <div class="row items-center q-gutter-x-sm q-mb-sm">
-                  <div class="table-img-wrapper cursor-pointer" @click="openImagePreview(props.row)">
-                    <ProxyImage :src="props.row.image_url" :alt="props.row.destination_name" class="table-img" />
-                  </div>
-                  <div class="column">
-                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{ props.row.destination_name }}</span>
-                    <span class="text-caption text-grey-6">{{ props.row.reporter_name }}</span>
-                    <span class="text-caption text-grey-6" style="font-size: 11px">{{ formatDateTime(props.row.created_at) }}</span>
-                  </div>
-                </div>
-                <div class="text-caption text-grey-8 q-mb-sm notes-cell">
-                  "{{ props.row.user_notes || 'Clean condition reported by user.' }}"
+
+                  <q-chip
+                    dense
+                    color="positive"
+                    text-color="white"
+                    icon="verified"
+                    class="text-weight-bold"
+                  >
+                    {{ props.row.cleanReports.length }} Bukti
+                  </q-chip>
                 </div>
 
-                <div class="row q-gutter-xs full-width q-mt-xs" v-if="isPending(props.row.status)">
-                  <q-btn
-                    color="positive"
-                    icon="check_circle"
-                    label="Verify"
-                    no-caps
+                <div class="row items-center q-gutter-x-sm q-mb-sm">
+                  <div
+                    class="table-img-wrapper cursor-pointer"
+                    @click="openImageZoom(props.row.image, 'Laporan Kotor - ' + props.row.location)"
+                  >
+                    <ProxyImage :src="props.row.image" :alt="props.row.location" class="table-img" />
+                  </div>
+                  <div class="column">
+                    <span class="text-subtitle2 text-weight-bold text-grey-9">{{ props.row.location }}</span>
+                    <span class="text-caption text-grey-6" style="font-size: 11px">
+                      {{ formatDateTime(props.row.timestamp) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="q-mt-xs q-mb-sm">
+                  <q-chip
                     dense
-                    class="col rounded-borders-btn text-weight-bold"
-                    @click="openVerifyDialog(props.row)"
-                  />
+                    size="sm"
+                    :class="props.row.aiScore >= 0.5 ? 'bg-red-1 text-negative' : 'bg-green-1 text-positive'"
+                    class="text-weight-bold font-chip q-mb-xs"
+                  >
+                    AI Score: {{ props.row.aiScore }}
+                  </q-chip>
+                  <div class="text-caption text-grey-8 text-weight-medium">
+                    {{ props.row.aiAnalysis }}
+                  </div>
+                </div>
+
+                <div class="row items-center justify-between q-mt-md q-pt-sm border-top">
                   <q-btn
-                    outline
-                    color="negative"
-                    icon="cancel"
-                    label="Reject"
-                    no-caps
+                    unelevated
                     dense
-                    class="col rounded-borders-btn text-weight-bold"
-                    @click="openRejectDialog(props.row)"
+                    no-caps
+                    color="primary"
+                    icon="photo_library"
+                    label="Lihat Bukti"
+                    class="rounded-btn q-px-sm"
+                    @click="openCleanProofsModal(props.row)"
                   />
                   <q-btn
                     flat
+                    dense
+                    no-caps
                     color="secondary"
                     icon="assessment"
-                    label="Inspect"
-                    no-caps
-                    dense
-                    class="col-auto rounded-borders-btn"
-                    @click="goVerify(props.row)"
+                    label="Monitoring"
+                    @click="goToMonitoring(props.row)"
                   />
                 </div>
               </q-card>
-            </div>
-          </template>
-
-          <template #no-data>
-            <div class="full-width column flex-center q-py-xl">
-              <q-icon name="check_circle_outline" size="56px" color="grey-5" class="q-mb-sm" />
-              <div class="text-h6 text-grey-8 text-weight-bold">No reports found</div>
-              <p class="text-body2 text-grey-6 q-mt-xs">
-                No clean reports match the selected filters.
-              </p>
-              <q-btn color="primary" outline no-caps label="Reset Filter" @click="resetFilter" />
             </div>
           </template>
         </q-table>
       </q-card>
     </div>
 
-    <q-dialog v-model="showImageModal">
-      <q-card style="width: 680px; max-width: 92vw" class="rounded-borders-lg overflow-hidden bg-white">
-        <q-card-section class="row items-center justify-between bg-primary text-white q-px-lg q-py-md">
-          <div class="text-subtitle1 text-weight-bold">
-            Cleanliness Proof Photo - {{ activeReport?.destination_name }}
+    <!-- Dialog Modal Detail Bukti Pembersihan Pengguna -->
+    <q-dialog v-model="showCleanProofsModal">
+      <q-card style="width: 760px; max-width: 95vw" class="rounded-borders-lg bg-white overflow-hidden">
+        <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
+          <div class="row items-center q-gutter-x-sm">
+            <q-icon name="verified" size="22px" />
+            <div class="text-subtitle1 text-weight-bold">
+              Bukti Bersih: {{ selectedRowForProofs?.location || 'Laporan Destinasi' }}
+            </div>
           </div>
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
 
-        <q-card-section class="q-pa-lg scroll" style="max-height: 68vh;" v-if="activeReport">
-          <div class="modal-img-container q-mb-md">
-            <ProxyImage
-              :src="activeReport.image_url"
-              :alt="activeReport.destination_name"
-              class="modal-img-blur"
-            />
-            <ProxyImage
-              :src="activeReport.image_url"
-              :alt="activeReport.destination_name"
-              class="modal-img"
-            />
-          </div>
+        <q-card-section class="q-pa-md" v-if="selectedRowForProofs">
+          <!-- Banner Perbandingan Singkat: Laporan Kotor Asal -->
+          <q-card flat bordered class="q-pa-sm bg-grey-1 rounded-borders q-mb-md">
+            <div class="row items-center justify-between q-col-gutter-sm">
+              <div class="col-12 col-sm-auto row items-center q-gutter-x-sm">
+                <div
+                  class="proof-thumb-small cursor-pointer"
+                  @click="openImageZoom(selectedRowForProofs.image, 'Laporan Kotor Asal')"
+                >
+                  <ProxyImage :src="selectedRowForProofs.image" :alt="selectedRowForProofs.location" class="full-cover" />
+                  <div class="thumb-zoom-overlay">
+                    <q-icon name="zoom_in" color="white" size="14px" />
+                  </div>
+                </div>
+                <div>
+                  <div class="text-caption text-weight-bold text-grey-9">
+                    Kondisi Kotor Awal (#Laporan {{ selectedRowForProofs.id }})
+                  </div>
+                  <div class="text-caption text-grey-6" style="font-size: 11px">
+                    {{ formatDateTime(selectedRowForProofs.timestamp) }} • AI Score: {{ selectedRowForProofs.aiScore }}
+                  </div>
+                </div>
+              </div>
 
-          <div class="row q-col-gutter-md q-mb-md">
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Destination Location</div>
-              <div class="text-subtitle2 text-weight-bold text-grey-9">
-                {{ activeReport.destination_name }}
-              </div>
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Report Time</div>
-              <div class="text-subtitle2 text-weight-bold text-grey-9">
-                {{ formatDateTime(activeReport.created_at) }}
-              </div>
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Reporter</div>
-              <div class="text-subtitle2 text-weight-bold text-grey-9">
-                {{ activeReport.reporter_name }}
-                <span class="text-caption text-grey-6 font-weight-regular">({{ activeReport.reporter_role }})</span>
-              </div>
-            </div>
-            <div class="col-12 col-sm-6">
-              <div class="text-caption text-grey-7">Report Status</div>
-              <div class="q-mt-xs">
-                <div :class="['status-pill', getStatusClass(activeReport.status)]">
-                  <q-icon :name="getStatusIcon(activeReport.status)" size="14px" class="q-mr-xs" />
-                  <span>{{ getStatusLabel(activeReport.status) }}</span>
+              <div class="col-12 col-sm-auto row items-center q-gutter-x-xs">
+                <span class="text-caption text-grey-7 q-mr-xs">Status Penanganan:</span>
+                <div
+                  :class="[
+                    'status-pill',
+                    selectedRowForProofs.status === 'Resolved' ? 'status-handled' : 'status-pending',
+                  ]"
+                >
+                  <q-icon
+                    :name="selectedRowForProofs.status === 'Resolved' ? 'check_circle' : 'pending'"
+                    size="14px"
+                    class="q-mr-xs"
+                  />
+                  <span>{{ selectedRowForProofs.status }}</span>
                 </div>
               </div>
             </div>
+          </q-card>
+
+          <!-- List Kartu Foto Bukti Bersih Pengguna -->
+          <div class="text-subtitle2 text-weight-bold text-grey-9 q-mb-sm row items-center">
+            <span>Foto Bukti Bersih dari Pengguna ({{ selectedRowForProofs.cleanReports?.length || 0 }} Foto):</span>
           </div>
 
-          <div class="q-mt-xs q-mb-md">
-            <div class="text-caption text-grey-7 q-mb-xs">Cleanliness Notes from Reporter:</div>
-            <div class="text-body2 text-grey-8 bg-grey-1 q-pa-md rounded-borders" style="border: 1px solid #e2e8f0; line-height: 1.6;">
-              "{{ activeReport.user_notes || 'No notes provided' }}"
-            </div>
+          <div
+            v-if="!selectedRowForProofs.cleanReports || selectedRowForProofs.cleanReports.length === 0"
+            class="text-caption text-grey-6 q-pa-md text-center bg-grey-1 rounded-borders"
+          >
+            Belum ada foto bukti bersih yang dikirim pengguna untuk laporan ini.
           </div>
 
-          <div v-if="activeReport.admin_notes" class="q-mt-xs">
-            <div class="text-caption text-grey-7 q-mb-xs">Admin Notes:</div>
-            <div class="text-body2 text-grey-9 bg-blue-1 q-pa-md rounded-borders" style="border: 1px solid #bfdbfe; line-height: 1.6;">
-              {{ activeReport.admin_notes }}
+          <div v-else class="row q-col-gutter-sm max-modal-scroll">
+            <div
+              v-for="(proof, idx) in selectedRowForProofs.cleanReports"
+              :key="proof.id || idx"
+              class="col-12 col-sm-6"
+            >
+              <q-card flat bordered class="q-pa-sm rounded-borders bg-white h-100 flex-column justify-between shadow-xs">
+                <div>
+                  <div
+                    class="proof-img-container cursor-pointer q-mb-xs"
+                    @click="openImageZoom(proof.image_url, 'Bukti Bersih - ' + (proof.reporter_name || 'Pengguna'))"
+                  >
+                    <ProxyImage :src="proof.image_url" :alt="proof.reporter_name" class="proof-img" />
+                    <div class="proof-img-overlay">
+                      <q-icon name="zoom_in" color="white" size="20px" />
+                      <span class="text-white text-caption q-ml-xs">Klik untuk perbesar</span>
+                    </div>
+                  </div>
+
+                  <div class="row items-center justify-between q-mt-xs">
+                    <span class="text-subtitle2 text-weight-bold text-grey-9 ellipsis">
+                      {{ proof.reporter_name || 'Pengguna' }}
+                    </span>
+                    <span class="text-caption text-grey-5" style="font-size: 11px">
+                      {{ formatDateTime(proof.created_at) }}
+                    </span>
+                  </div>
+
+                  <div class="text-caption text-grey-6 ellipsis" style="font-size: 11px">
+                    {{ proof.reporter_role || 'Warga / Wisatawan' }}
+                  </div>
+
+                  <div
+                    v-if="proof.user_notes"
+                    class="text-caption text-grey-8 bg-grey-1 q-pa-xs rounded-borders q-mt-xs"
+                    style="font-style: italic"
+                  >
+                    "{{ proof.user_notes }}"
+                  </div>
+                </div>
+              </q-card>
             </div>
           </div>
         </q-card-section>
 
         <q-separator />
-        <q-card-actions align="right" class="q-px-lg q-py-md bg-grey-1">
-          <q-btn flat no-caps label="Close" color="grey-8" v-close-popup class="q-px-md" />
 
-          <template v-if="activeReport && isPending(activeReport.status)">
+        <q-card-actions align="between" class="q-pa-md bg-grey-1">
+          <div>
             <q-btn
-              outline
-              color="negative"
-              icon="cancel"
-              label="Reject"
+              flat
               no-caps
-              class="rounded-borders-btn text-weight-bold q-px-md"
-              @click="openRejectDialog(activeReport); showImageModal = false"
+              color="primary"
+              icon="open_in_new"
+              label="Buka di Monitoring"
+              @click="goToMonitoring(selectedRowForProofs)"
             />
+          </div>
+
+          <div class="row items-center q-gutter-x-sm">
+            <q-btn flat label="Tutup" no-caps color="grey-8" v-close-popup />
             <q-btn
+              v-if="selectedRowForProofs && selectedRowForProofs.status !== 'Resolved'"
               color="positive"
               icon="check_circle"
-              label="Verify & Approve"
               no-caps
-              class="rounded-borders-btn text-weight-bold q-px-md"
-              @click="openVerifyDialog(activeReport); showImageModal = false"
-            />
-          </template>
-
-          <q-btn
-            v-if="activeReport?.destination_id"
-            flat
-            color="secondary"
-            icon="assessment"
-            label="Inspect Monitoring"
-            no-caps
-            class="rounded-borders-btn q-px-md"
-            @click="goVerify(activeReport); showImageModal = false"
-          />
+              unelevated
+              style="border-radius: 10px"
+              label="Ubah Status ke Resolved"
+              :loading="isSubmittingStatus"
+              @click="markReportResolved(selectedRowForProofs)"
+            >
+              <q-tooltip>Tandai laporan kotor ini telah selesai ditangani</q-tooltip>
+            </q-btn>
+          </div>
         </q-card-actions>
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="showVerifyModal" persistent>
-      <q-card style="width: 480px; max-width: 92vw" class="rounded-borders-lg bg-white q-pa-md">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar icon="check_circle" color="green-1" text-color="positive" size="44px" />
-          <div class="text-h6 text-weight-bold q-ml-sm text-grey-9">Verify Cleanliness</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup color="grey-7" />
+    <!-- Dialog Modal Zoom Gambar -->
+    <q-dialog v-model="showImageZoomModal">
+      <q-card style="width: 700px; max-width: 95vw" class="rounded-borders-lg overflow-hidden bg-white">
+        <q-card-section class="row items-center justify-between bg-grey-9 text-white q-py-sm">
+          <div class="text-subtitle2 text-weight-bold ellipsis">{{ zoomedImageTitle || 'Preview Foto' }}</div>
+          <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
-
-        <q-card-section class="q-pt-md">
-          <p class="text-body2 text-grey-7 q-mb-md">
-            Konfirmasi bahwa destinasi <strong>{{ actionTargetReport?.destination_name }}</strong> sudah bersih berdasarkan bukti laporan dari <strong>{{ actionTargetReport?.reporter_name }}</strong>.
-          </p>
-          <q-input
-            v-model="adminNotesInput"
-            label="Admin Notes (Opsional)"
-            placeholder="Area telah dikonfirmasi bersih oleh admin."
-            outlined
-            dense
-            type="textarea"
-            rows="3"
-          />
+        <q-card-section class="q-pa-none bg-black flex flex-center" style="min-height: 350px; max-height: 80vh">
+          <ProxyImage :src="zoomedImageUrl" :alt="zoomedImageTitle" style="max-width: 100%; max-height: 75vh; object-fit: contain" />
         </q-card-section>
-
-        <q-card-actions align="right" class="q-pt-none">
-          <q-btn flat label="Batal" color="grey-7" no-caps v-close-popup :disable="isSubmitting" />
-          <q-btn
-            unelevated
-            label="Verifikasi Sekarang"
-            color="positive"
-            no-caps
-            class="rounded-borders-btn text-weight-bold q-px-md"
-            :loading="isSubmitting"
-            @click="confirmVerify"
-          />
-        </q-card-actions>
       </q-card>
     </q-dialog>
-
-    <q-dialog v-model="showRejectModal" persistent>
-      <q-card style="width: 480px; max-width: 92vw" class="rounded-borders-lg bg-white q-pa-md">
-        <q-card-section class="row items-center q-pb-none">
-          <q-avatar icon="cancel" color="red-1" text-color="negative" size="44px" />
-          <div class="text-h6 text-weight-bold q-ml-sm text-grey-9">Reject Clean Report</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup color="grey-7" />
-        </q-card-section>
-
-        <q-card-section class="q-pt-md">
-          <p class="text-body2 text-grey-7 q-mb-md">
-            Apakah Anda yakin ingin menolak laporan kebersihan untuk <strong>{{ actionTargetReport?.destination_name }}</strong>? Pelapor akan mendapatkan notifikasi penolakan.
-          </p>
-          <q-input
-            v-model="adminNotesInput"
-            label="Alasan Penolakan (Admin Notes)"
-            placeholder="Foto tidak jelas atau kondisi belum sepenuhnya bersih."
-            outlined
-            dense
-            type="textarea"
-            rows="3"
-          />
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pt-none">
-          <q-btn flat label="Batal" color="grey-7" no-caps v-close-popup :disable="isSubmitting" />
-          <q-btn
-            unelevated
-            label="Tolak Laporan"
-            color="negative"
-            no-caps
-            class="rounded-borders-btn text-weight-bold q-px-md"
-            :loading="isSubmitting"
-            @click="confirmReject"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-
-    <StatusDialog
-      v-model="showStatusFeedback"
-      :type="feedbackConfig.type"
-      :title="feedbackConfig.title"
-      :message="feedbackConfig.message"
-    />
   </q-page>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useCleanReportsStore } from 'src/stores/cleanReports'
 import { api } from 'boot/axios'
 import ProxyImage from 'components/ProxyImage.vue'
-import StatusDialog from 'components/StatusDialog.vue'
 
+const $q = useQuasar()
 const router = useRouter()
 const cleanStore = useCleanReportsStore()
 
+const isLoading = ref(false)
 const searchQuery = ref('')
 const statusFilter = ref('all')
+const dirtyReports = ref([])
+const destinationList = ref([])
 
 const statusOptions = [
-  { label: 'All Statuses', value: 'all' },
-  { label: 'Pending Verification', value: 'pending' },
-  { label: 'Verified', value: 'verified' },
-  { label: 'Rejected', value: 'rejected' },
+  { label: 'Semua Status Laporan Kotor', value: 'all' },
+  { label: 'Laporan Kotor Pending', value: 'pending' },
+  { label: 'Laporan Kotor Resolved', value: 'resolved' },
 ]
-
-const showImageModal = ref(false)
-const activeReport = ref(null)
-
-const showVerifyModal = ref(false)
-const showRejectModal = ref(false)
-const actionTargetReport = ref(null)
-const adminNotesInput = ref('')
-const isSubmitting = ref(false)
-
-const showStatusFeedback = ref(false)
-const feedbackConfig = ref({
-  type: 'success',
-  title: '',
-  message: '',
-})
 
 const columns = [
   {
-    name: 'destination',
-    label: 'Destination',
-    field: 'destination_name',
+    name: 'location',
+    label: 'Destinasi & ID Laporan',
+    field: 'location',
     align: 'left',
     sortable: true,
-    style: 'font-weight: 700; color: #1E293B;',
   },
   {
-    name: 'foto',
-    label: 'Clean Proof Photo',
-    field: 'image_url',
+    name: 'dirtyPhoto',
+    label: 'Foto Laporan Kotor',
+    field: 'image',
     align: 'center',
   },
   {
-    name: 'reporter',
-    label: 'Reporter',
-    field: 'reporter_name',
+    name: 'dirtyAnalysis',
+    label: 'Analisis AI',
+    field: 'aiSummary',
     align: 'left',
   },
   {
     name: 'timestamp',
-    label: 'Report Time',
-    field: 'created_at',
+    label: 'Waktu Lapor Kotor',
+    field: 'timestamp',
     align: 'left',
     sortable: true,
   },
   {
+    name: 'buktiBersih',
+    label: 'Bukti Bersih Masuk',
+    field: 'cleanProofCount',
+    align: 'center',
+    sortable: true,
+  },
+  {
     name: 'status',
-    label: 'Verification Status',
+    label: 'Status Penanganan',
     field: 'status',
     align: 'center',
     sortable: true,
   },
   {
     name: 'aksi',
-    label: 'Actions',
-    field: 'id',
+    label: 'Aksi',
+    field: 'key',
     align: 'center',
   },
 ]
 
-onMounted(async () => {
-  cleanStore.loadFromStorage()
-  await cleanStore.fetchCleanReports()
-})
+const showCleanProofsModal = ref(false)
+const selectedRowForProofs = ref(null)
+const isSubmittingStatus = ref(false)
 
-async function refreshData() {
-  await cleanStore.fetchCleanReports()
+const showImageZoomModal = ref(false)
+const zoomedImageUrl = ref('')
+const zoomedImageTitle = ref('')
+
+function openImageZoom(imgUrl, title) {
+  zoomedImageUrl.value = imgUrl
+  zoomedImageTitle.value = title || 'Preview Foto'
+  showImageZoomModal.value = true
 }
 
-function isPending(status) {
-  const s = String(status || '').toLowerCase()
-  return s === 'pending' || !s
+function openCleanProofsModal(row) {
+  selectedRowForProofs.value = row
+  showCleanProofsModal.value = true
 }
 
-function isVerified(status) {
-  const s = String(status || '').toLowerCase()
-  return s === 'verified' || s === 'resolved'
-}
-
-function isRejected(status) {
-  const s = String(status || '').toLowerCase()
-  return s === 'rejected'
-}
-
-function getStatusClass(status) {
-  if (isVerified(status)) return 'status-verified'
-  if (isRejected(status)) return 'status-rejected'
-  return 'status-pending'
-}
-
-function getStatusIcon(status) {
-  if (isVerified(status)) return 'check_circle'
-  if (isRejected(status)) return 'cancel'
-  return 'pending_actions'
-}
-
-function getStatusLabel(status) {
-  if (isVerified(status)) return 'Verified'
-  if (isRejected(status)) return 'Rejected'
-  return 'Pending Verification'
-}
-
-const filteredReports = computed(() => {
-  return cleanStore.cleanReports.filter((item) => {
-    const q = searchQuery.value.trim().toLowerCase()
-    const matchesSearch =
-      !q ||
-      (item.destination_name || '').toLowerCase().includes(q) ||
-      (item.user_notes || '').toLowerCase().includes(q) ||
-      (item.reporter_name || '').toLowerCase().includes(q)
-
-    let matchesStatus = true
-    if (statusFilter.value === 'pending') {
-      matchesStatus = isPending(item.status)
-    } else if (statusFilter.value === 'verified') {
-      matchesStatus = isVerified(item.status)
-    } else if (statusFilter.value === 'rejected') {
-      matchesStatus = isRejected(item.status)
-    }
-
-    return matchesSearch && matchesStatus
-  })
-})
-
-function resetFilter() {
-  searchQuery.value = ''
-  statusFilter.value = 'all'
-}
-
-function openImagePreview(report) {
-  activeReport.value = report
-  showImageModal.value = true
-}
-
-function openVerifyDialog(report) {
-  actionTargetReport.value = report
-  adminNotesInput.value = 'Verified clean by government admin.'
-  showVerifyModal.value = true
-}
-
-function openRejectDialog(report) {
-  actionTargetReport.value = report
-  adminNotesInput.value = ''
-  showRejectModal.value = true
-}
-
-async function confirmVerify() {
-  if (!actionTargetReport.value) return
-  isSubmitting.value = true
-  try {
-    await cleanStore.verifyCleanReport(
-      actionTargetReport.value.id,
-      adminNotesInput.value.trim() || 'Verified clean by government admin.',
-    )
-    showVerifyModal.value = false
-    feedbackConfig.value = {
-      type: 'success',
-      title: 'Laporan Diverifikasi',
-      message: `Laporan kebersihan destinasi "${actionTargetReport.value.destination_name}" telah diverifikasi.`,
-    }
-    showStatusFeedback.value = true
-  } catch (e) {
-    console.error('Failed to verify clean report:', e)
-    feedbackConfig.value = {
-      type: 'error',
-      title: 'Gagal Memverifikasi',
-      message: e.response?.data?.message || 'Terjadi kesalahan saat memverifikasi laporan.',
-    }
-    showStatusFeedback.value = true
-  } finally {
-    isSubmitting.value = false
+function formatReportImage(url) {
+  if (!url || typeof url !== 'string') return ''
+  if ((url.startsWith('http://') || url.startsWith('https://')) && url.includes('ngrok') && url.includes('/static/')) {
+    return url.substring(url.indexOf('/static/'))
   }
-}
-
-async function confirmReject() {
-  if (!actionTargetReport.value) return
-  isSubmitting.value = true
-  try {
-    await cleanStore.rejectCleanReport(
-      actionTargetReport.value.id,
-      adminNotesInput.value.trim() || 'Laporan kebersihan ditolak.',
-    )
-    showRejectModal.value = false
-    feedbackConfig.value = {
-      type: 'info',
-      title: 'Laporan Ditolak',
-      message: `Laporan kebersihan destinasi "${actionTargetReport.value.destination_name}" telah ditolak.`,
-    }
-    showStatusFeedback.value = true
-  } catch (e) {
-    console.error('Failed to reject clean report:', e)
-    feedbackConfig.value = {
-      type: 'error',
-      title: 'Gagal Menolak Laporan',
-      message: e.response?.data?.message || 'Terjadi kesalahan saat menolak laporan.',
-    }
-    showStatusFeedback.value = true
-  } finally {
-    isSubmitting.value = false
-  }
+  if (url.includes('/static/')) return url.substring(url.indexOf('/static/'))
+  if (url.startsWith('data:image/') || url.startsWith('http://') || url.startsWith('https://')) return url
+  return url.startsWith('/') ? url : `/${url}`
 }
 
 function formatDateTime(dateStr) {
   if (!dateStr || dateStr === '-') return '-'
   const str = String(dateStr).trim()
   if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) return str
-  try {
-    let d
-    if (str.includes('T') && !str.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(str)) {
-      d = new Date(str + 'Z')
-    } else {
-      d = new Date(str)
-    }
-    if (isNaN(d.getTime())) {
-      return str.replace('T', ' ')
-    }
-    const day = String(d.getDate()).padStart(2, '0')
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const year = d.getFullYear()
-    const hours = String(d.getHours()).padStart(2, '0')
-    const minutes = String(d.getMinutes()).padStart(2, '0')
-    const seconds = String(d.getSeconds()).padStart(2, '0')
+
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/)
+  if (match) {
+    const [, year, month, day, hours, minutes, seconds = '00'] = match
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`
-  } catch {
-    return str.replace('T', ' ')
+  }
+
+  const dateOnlyMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    return `${day}/${month}/${year}`
+  }
+
+  return str.replace('T', ' ')
+}
+
+function resolveLocationName(item) {
+  let name = item.destination_name || item.destination?.name || item.location || item.name || ''
+  if (!name && item.destination_id) {
+    const found = destinationList.value.find((d) => (d.id || d.destination_id) == item.destination_id)
+    if (found) name = found.name || ''
+  }
+  if (!name && item.destination_id) name = `Destination #${item.destination_id}`
+  return name || 'Destinasi Wisata'
+}
+
+function mapDirtyReport(item) {
+  const score = item.score ?? item.ai_score ?? item.aiScore ?? 0
+  const count = item.detected_count ?? item.detectedCount
+  let analysis = item.ai_analysis || item.aiAnalysis || ''
+  if (!analysis) {
+    analysis = (count !== undefined && count !== null)
+      ? (count > 0 ? `${count} objek sampah terdeteksi` : 'Area Bersih')
+      : (Number(score) >= 0.5 ? 'Area kotor terdeteksi' : 'Area bersih')
+  }
+
+  const s = String(item.status || '').toLowerCase()
+  const statusStr = (s === 'resolved' || s === 'handled') ? 'Resolved' : 'Pending'
+
+  return {
+    id: item.id,
+    destination_id: item.destination_id,
+    location: resolveLocationName(item),
+    image: formatReportImage(item.image_url || item.image || item.photo),
+    aiScore: score,
+    aiAnalysis: analysis,
+    timestamp: formatDateTime(item.created_at || item.timestamp || item.reported_at || '-'),
+    status: statusStr,
+    reporterNotes: item.user_notes || item.reporter_notes || item.description || '',
+    notes: item.admin_notes || item.notes || '',
+    raw: item,
   }
 }
 
-async function goVerify(report) {
-  const destId = report.destination_id
+async function fetchDestinations() {
+  try {
+    let res
+    try { res = await api.get('/destinations/') } catch { res = await api.get('/destinations') }
+    const raw = res.data?.data || res.data || []
+    destinationList.value = Array.isArray(raw) ? raw : []
+  } catch (e) {
+    console.warn('Failed to fetch destinations:', e)
+  }
+}
 
-  if (!destId) {
-    router.push('/admin/monitoring')
+async function fetchDirtyReports() {
+  try {
+    let res
+    try { res = await api.get('/reports') } catch { res = await api.get('/reports/') }
+    const raw = res.data?.data || res.data || []
+    dirtyReports.value = (Array.isArray(raw) ? raw : []).map(mapDirtyReport)
+  } catch (e) {
+    console.warn('Failed to fetch dirty reports:', e)
+  }
+}
+
+async function refreshData() {
+  isLoading.value = true
+  try {
+    await fetchDestinations()
+    await Promise.all([
+      cleanStore.fetchCleanReports(),
+      fetchDirtyReports(),
+    ])
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  cleanStore.loadFromStorage()
+  await refreshData()
+})
+
+/**
+ * Grouping Laporan Bersih per Laporan Kotor
+ */
+const tableRows = computed(() => {
+  const rows = []
+  const assignedCleanIds = new Set()
+
+  // 1. Loop setiap laporan kotor dan pasangkan laporan bersih yang sesuai
+  dirtyReports.value.forEach((dr) => {
+    const matchedCleans = cleanStore.getCleanReportsForDirtyReport(dr)
+
+    if (matchedCleans.length > 0) {
+      matchedCleans.forEach((c) => assignedCleanIds.add(c.id))
+      rows.push({
+        key: `dirty_${dr.id}`,
+        id: dr.id,
+        destination_id: dr.destination_id,
+        location: dr.location,
+        image: dr.image,
+        aiScore: dr.aiScore,
+        aiAnalysis: dr.aiAnalysis,
+        timestamp: dr.timestamp,
+        status: dr.status,
+        cleanReports: matchedCleans,
+        cleanProofCount: matchedCleans.length,
+        latestReporter: matchedCleans[0]?.reporter_name || 'Pengguna',
+        dirtyReport: dr,
+      })
+    }
+  })
+
+  // 2. Jika ada clean report yang belum tertaut ke laporan kotor mana pun, buatkan baris tersendiri
+  const unlinkedCleans = cleanStore.cleanReports.filter((cr) => !assignedCleanIds.has(cr.id))
+  if (unlinkedCleans.length > 0) {
+    const unlinkedByDest = new Map()
+    unlinkedCleans.forEach((cr) => {
+      const destKey = cr.destination_name || 'Destinasi Lainnya'
+      if (!unlinkedByDest.has(destKey)) {
+        unlinkedByDest.set(destKey, [])
+      }
+      unlinkedByDest.get(destKey).push(cr)
+    })
+
+    unlinkedByDest.forEach((cleans, destName) => {
+      rows.push({
+        key: `unlinked_${destName}`,
+        id: '-',
+        destination_id: cleans[0]?.destination_id || null,
+        location: destName,
+        image: cleans[0]?.image_url || '',
+        aiScore: 0,
+        aiAnalysis: 'Laporan bersih mandiri pengguna',
+        timestamp: cleans[0]?.created_at || '-',
+        status: 'Pending',
+        cleanReports: cleans,
+        cleanProofCount: cleans.length,
+        latestReporter: cleans[0]?.reporter_name || 'Pengguna',
+        dirtyReport: null,
+      })
+    })
+  }
+
+  return rows
+})
+
+const filteredTableRows = computed(() => {
+  return tableRows.value.filter((row) => {
+    // Filter status laporan kotor
+    if (statusFilter.value === 'pending' && row.status !== 'Pending') {
+      return false
+    }
+    if (statusFilter.value === 'resolved' && row.status !== 'Resolved') {
+      return false
+    }
+
+    // Filter search query
+    const q = searchQuery.value.trim().toLowerCase()
+    if (!q) return true
+
+    const loc = (row.location || '').toLowerCase()
+    const matchLoc = loc.includes(q)
+    const matchCleans = row.cleanReports.some((cr) => {
+      return (
+        (cr.reporter_name || '').toLowerCase().includes(q) ||
+        (cr.user_notes || '').toLowerCase().includes(q)
+      )
+    })
+
+    return matchLoc || matchCleans
+  })
+})
+
+const totalDirtyWithClean = computed(() => tableRows.value.length)
+const pendingDirtyCount = computed(() => {
+  return tableRows.value.filter((r) => r.status === 'Pending').length
+})
+
+/**
+ * Route ke Monitoring Detail Page
+ */
+function goToMonitoring(row) {
+  const destKey = row.destination_id ? String(row.destination_id) : (row.location || 'monitoring')
+
+  const allDestDirty = dirtyReports.value.filter((item) => {
+    if (row.destination_id && item.destination_id) {
+      return String(item.destination_id) === String(row.destination_id)
+    }
+    return item.location === row.location
+  })
+
+  sessionStorage.setItem(
+    `monitoring_dest_${destKey}`,
+    JSON.stringify({
+      location: row.location || 'Destinasi',
+      destinationId: row.destination_id,
+      targetReportId: row.id,
+      reports: allDestDirty.length > 0 ? allDestDirty : (row.dirtyReport ? [row.dirtyReport] : []),
+    })
+  )
+
+  router.push(`/admin/monitoring/${destKey}`)
+}
+
+/**
+ * Tandai Laporan Kotor Selesai (Resolved)
+ */
+async function markReportResolved(row) {
+  if (!row || !row.id || row.id === '-') {
+    $q.notify({
+      type: 'warning',
+      message: 'Laporan ini tidak tertaut ke ID laporan kotor spesifik.',
+      position: 'top',
+    })
     return
   }
 
+  isSubmittingStatus.value = true
+  const reportId = row.id
+  const payload = {
+    status: 'resolved',
+    admin_notes: 'Status diselesaikan via verifikasi bukti bersih',
+    notes: 'Status diselesaikan via verifikasi bukti bersih',
+  }
+
+  const reqConfig = { headers: { 'ngrok-skip-browser-warning': 'true' } }
+
   try {
-    let dirtyRes
-    try { dirtyRes = await api.get('/reports') } catch { dirtyRes = await api.get('/reports/') }
-    const rawDirty = dirtyRes.data?.data || dirtyRes.data || []
-    const allDirty = (Array.isArray(rawDirty) ? rawDirty : []).filter((r) => {
-      return String(r.destination_id || '') === String(destId)
-    })
-
-    let baselineDate = null
-    let baselineLabel = null
-
     try {
-      let cleanRes
-      try {
-        cleanRes = await api.get(`/clean-reports?status=verified`)
-      } catch {
-        cleanRes = await api.get(`/clean-reports/`)
-      }
-      const rawClean = cleanRes.data?.data || cleanRes.data || []
-      const verifiedCleans = (Array.isArray(rawClean) ? rawClean : [])
-        .filter((c) => {
-          return (
-            String(c.destination_id || '') === String(destId) &&
-            (c.status === 'verified' || c.status === 'resolved') &&
-            c.verified_at
-          )
-        })
-        .sort((a, b) => new Date(b.verified_at) - new Date(a.verified_at))
-
-      if (verifiedCleans.length > 0) {
-        baselineDate = new Date(verifiedCleans[0].verified_at)
-        baselineLabel = formatDateTime(verifiedCleans[0].verified_at)
-      }
-    } catch (e) {
-      console.warn('Could not fetch clean reports for baseline:', e)
+      await api.put(`/reports/${reportId}`, payload, reqConfig)
+    } catch {
+      await api.put(`/reports/${reportId}/`, payload, reqConfig)
     }
 
-    const filteredDirty = baselineDate
-      ? allDirty.filter((r) => {
-          const reportDate = new Date(r.created_at || r.timestamp || 0)
-          return reportDate > baselineDate
-        })
-      : allDirty
+    // Update state secara lokal
+    row.status = 'Resolved'
+    if (row.dirtyReport) row.dirtyReport.status = 'Resolved'
+    const foundDirty = dirtyReports.value.find((d) => d.id === reportId)
+    if (foundDirty) foundDirty.status = 'Resolved'
 
-    sessionStorage.setItem(
-      `monitoring_dest_${destId}`,
-      JSON.stringify({
-        location: report.destination_name,
-        destinationId: destId,
-        baselineVerifiedAt: baselineDate ? baselineDate.toISOString() : null,
-        baselineLabel: baselineLabel,
-        totalDirtyAll: allDirty.length,
-        totalDirtyFiltered: filteredDirty.length,
-        reports: filteredDirty.map((r) => ({
-          id: r.id,
-          destination_id: r.destination_id,
-          location: report.destination_name,
-          image: r.image_url || r.image || '',
-          aiScore: r.score ?? r.ai_score ?? 0,
-          aiAnalysis: r.ai_analysis || '',
-          timestamp: formatDateTime(r.created_at || ''),
-          status:
-            String(r.status || '').toLowerCase() === 'resolved' ||
-            String(r.status || '').toLowerCase() === 'handled'
-              ? 'Resolved'
-              : 'Pending',
-          reporterNotes: r.user_notes || r.reporter_notes || '',
-          notes: r.admin_notes || r.notes || '',
-          raw: r,
-        })),
-      }),
-    )
-
-    router.push(`/admin/monitoring/${destId}`)
-  } catch (e) {
-    console.warn('Could not preload destination reports:', e)
-    router.push(`/admin/monitoring/${destId}`)
+    $q.notify({
+      type: 'positive',
+      message: `Laporan #${reportId} (${row.location}) berhasil ditandai Resolved!`,
+      position: 'top',
+    })
+  } catch (err) {
+    console.error('Gagal update status laporan:', err)
+    $q.notify({
+      type: 'negative',
+      message: 'Gagal memperbarui status laporan ke backend.',
+      position: 'top',
+    })
+  } finally {
+    isSubmittingStatus.value = false
   }
 }
-
 </script>
 
 <style scoped lang="scss">
@@ -832,92 +902,204 @@ async function goVerify(report) {
 }
 
 .search-input {
-  width: 100%;
-  max-width: 420px;
+  min-width: 260px;
 }
 
 .filter-select {
-  width: 100%;
-  min-width: 200px;
-  @media (max-width: 599px) { margin-top: 0.5rem; }
+  min-width: 220px;
 }
 
 .table-card {
   border-radius: 16px;
-  background-color: #ffffff;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   border: 1px solid #e2e8f0;
-  overflow-x: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.custom-clean-table {
+  :deep(thead tr th) {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 14px 16px;
+  }
+
+  :deep(tbody tr td) {
+    font-size: 0.9rem;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  :deep(tbody tr:hover) {
+    background-color: #f8fafc;
+  }
 }
 
 .table-img-wrapper {
-  width: 90px;
-  height: 60px;
+  position: relative;
+  width: 68px;
+  height: 52px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
   display: inline-block;
-  transition: transform 0.2s ease;
-  &:hover { transform: scale(1.05); }
+
   .table-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-}
 
-.notes-cell {
-  max-width: 280px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-style: italic;
+  .table-img-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover .table-img-overlay {
+    opacity: 1;
+  }
 }
 
 .status-pill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.3px;
+
+  &.status-handled {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.status-pending {
+    background-color: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
 }
 
-.status-pending { background-color: #fef3c7; color: #b45309; }
-.status-verified { background-color: #dcfce7; color: #15803d; }
-.status-rejected { background-color: #fee2e2; color: #b91c1c; }
+.font-chip {
+  font-size: 11px;
+}
 
-.rounded-btn { border-radius: 8px; }
-.rounded-borders-btn { border-radius: 10px; }
-.rounded-borders-lg { border-radius: 16px; }
+.style-fit-content {
+  width: fit-content;
+}
 
-.modal-img-container {
-  position: relative;
-  width: 100%;
-  height: 280px;
-  border-radius: 12px;
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  background-color: #000;
 }
 
-.modal-img-blur {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(20px);
-  opacity: 0.4;
-  transform: scale(1.1);
+.hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+  }
 }
 
-.modal-img {
+.proof-thumb-small {
+  position: relative;
+  width: 52px;
+  height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+
+  .full-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .thumb-zoom-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover .thumb-zoom-overlay {
+    opacity: 1;
+  }
+}
+
+.proof-img-container {
   position: relative;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 1;
+  height: 160px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #0f172a;
+
+  .proof-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .proof-img-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover .proof-img-overlay {
+    opacity: 1;
+  }
+}
+
+.max-modal-scroll {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.shadow-xs {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.rounded-btn {
+  border-radius: 8px;
+}
+
+.rounded-borders-lg {
+  border-radius: 14px;
+}
+
+.border-top {
+  border-top: 1px solid #f1f5f9;
 }
 </style>

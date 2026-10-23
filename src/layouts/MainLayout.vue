@@ -167,13 +167,6 @@ const linksList = computed(() => [
     badgeColor: 'negative',
   },
   {
-    title: 'Clean Reports',
-    icon: 'verified',
-    link: '/admin/clean-reports',
-    badge: cleanStore.pendingCleanCount > 0 ? cleanStore.pendingCleanCount : null,
-    badgeColor: 'amber-9',
-  },
-  {
     title: 'Destination',
     icon: 'place',
     link: '/admin/destination',

@@ -20,22 +20,31 @@
         </div>
       </div>
 
-      <div class="row q-col-gutter-md q-mb-lg" v-if="pendingDirtyCount > 0 || pendingCleanCount > 0">
-        <div class="col-12 col-sm-6" v-if="pendingDirtyCount > 0">
+      <div class="row q-col-gutter-md q-mb-lg">
+        <!-- Card 1: Laporan Kotor (Pending) -->
+        <div class="col-12 col-sm-6">
           <q-card
             flat
             class="notif-card notif-card--dirty cursor-pointer"
             @click="router.push('/admin/monitoring')"
           >
             <div class="row items-center q-gutter-x-md">
-              <div class="notif-icon-wrapper bg-red-1">
-                <q-icon name="report_problem" size="26px" color="negative" />
+              <div class="notif-icon-wrapper" :class="pendingDirtyCount > 0 ? 'bg-red-1' : 'bg-green-1'">
+                <q-icon
+                  :name="pendingDirtyCount > 0 ? 'report_problem' : 'check_circle'"
+                  size="26px"
+                  :color="pendingDirtyCount > 0 ? 'negative' : 'positive'"
+                />
               </div>
               <div class="col">
-                <div class="text-caption text-grey-7 text-weight-bold">UNRESOLVED WASTE REPORTS</div>
+                <div class="text-caption text-grey-7 text-weight-bold">DIRTY REPORTS</div>
                 <div class="row items-center q-gutter-x-xs q-mt-xs">
-                  <span class="notif-count text-negative">{{ pendingDirtyCount }}</span>
-                  <span class="text-body2 text-grey-8">pending resolution</span>
+                  <span class="notif-count" :class="pendingDirtyCount > 0 ? 'text-negative' : 'text-positive'">
+                    {{ pendingDirtyCount }}
+                  </span>
+                  <span class="text-body2 text-grey-8">
+                    {{ pendingDirtyCount > 0 ? 'reports pending resolution' : 'all reports resolved' }}
+                  </span>
                 </div>
               </div>
               <q-btn flat round dense icon="chevron_right" color="grey-6" />
@@ -43,21 +52,24 @@
           </q-card>
         </div>
 
-        <div class="col-12 col-sm-6" v-if="pendingCleanCount > 0">
+        <!-- Card 2: Jumlah Laporan Bersih (Bukti Masuk Aktif) -->
+        <div class="col-12 col-sm-6">
           <q-card
             flat
             class="notif-card notif-card--clean cursor-pointer"
-            @click="router.push('/admin/clean-reports')"
+            @click="router.push('/admin/monitoring')"
           >
             <div class="row items-center q-gutter-x-md">
-              <div class="notif-icon-wrapper bg-amber-1">
-                <q-icon name="pending_actions" size="26px" color="amber-9" />
+              <div class="notif-icon-wrapper bg-green-1">
+                <q-icon name="verified" size="26px" color="positive" />
               </div>
               <div class="col">
-                <div class="text-caption text-grey-7 text-weight-bold">CLEAN REPORTS</div>
+                <div class="text-caption text-grey-7 text-weight-bold">CLEAN PROOFS</div>
                 <div class="row items-center q-gutter-x-xs q-mt-xs">
-                  <span class="notif-count text-amber-9">{{ pendingCleanCount }}</span>
-                  <span class="text-body2 text-grey-8">pending verification</span>
+                  <span class="notif-count text-positive">{{ activeCleanProofsCount }}</span>
+                  <span class="text-body2 text-grey-8">
+                    {{ activeCleanProofsCount > 0 ? 'active proofs awaiting review' : 'no pending proofs' }}
+                  </span>
                 </div>
               </div>
               <q-btn flat round dense icon="chevron_right" color="grey-6" />
@@ -187,23 +199,42 @@ import report1Img from 'assets/report1.jpg'
 const router = useRouter()
 const cleanStore = useCleanReportsStore()
 
-const pendingDirtyCount = ref(0)
-async function fetchPendingDirtyCount() {
+const rawDirtyReports = ref([])
+
+async function fetchDirtyReports() {
   try {
     let res
     try { res = await api.get('/reports') } catch { res = await api.get('/reports/') }
     const raw = res.data?.data || res.data || []
-    const list = Array.isArray(raw) ? raw : []
-    pendingDirtyCount.value = list.filter((r) => {
-      const s = String(r.status || '').toLowerCase()
-      return s !== 'resolved' && s !== 'handled'
-    }).length
+    rawDirtyReports.value = Array.isArray(raw) ? raw : []
   } catch (e) {
-    console.warn('Failed to fetch pending dirty count:', e)
+    console.warn('Failed to fetch dirty reports:', e)
+    rawDirtyReports.value = []
   }
 }
 
-const pendingCleanCount = computed(() => cleanStore.pendingCleanCount)
+// 1. Laporan kotor yang masih belum selesai (Pending)
+const pendingDirtyReports = computed(() => {
+  return rawDirtyReports.value.filter((r) => {
+    const s = String(r.status || '').toLowerCase()
+    return s !== 'resolved' && s !== 'handled'
+  })
+})
+
+const pendingDirtyCount = computed(() => pendingDirtyReports.value.length)
+
+// 2. Jumlah bukti bersih untuk laporan kotor yang masih aktif (Pending)
+const activeCleanProofsCount = computed(() => {
+  if (!cleanStore.cleanReports || cleanStore.cleanReports.length === 0) return 0
+  if (pendingDirtyReports.value.length === 0) return 0
+
+  const activeCleanIds = new Set()
+  pendingDirtyReports.value.forEach((dr) => {
+    const matched = cleanStore.getCleanReportsForDirtyReport(dr)
+    matched.forEach((c) => activeCleanIds.add(c.id))
+  })
+  return activeCleanIds.size
+})
 
 let map = null
 
@@ -423,16 +454,14 @@ async function fetchTotalReportsCount() {
 
 function formatDashboardDate(dateStr) {
   if (!dateStr || dateStr === '-') return '-'
-  try {
-    const d = new Date(dateStr)
-    if (isNaN(d.getTime())) return dateStr
-    const day = String(d.getDate()).padStart(2, '0')
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const year = d.getFullYear()
+  const str = String(dateStr).trim()
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) return str.slice(0, 10)
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    const [, year, month, day] = match
     return `${day}/${month}/${year}`
-  } catch {
-    return dateStr
   }
+  return str
 }
 
 function formatDashboardImage(url) {
@@ -677,7 +706,10 @@ const createCustomMarkerIcon = (status, name, color) => {
 
 onMounted(async () => {
   cleanStore.loadFromStorage()
-  await fetchPendingDirtyCount()
+  await Promise.all([
+    fetchDirtyReports(),
+    cleanStore.fetchCleanReports(),
+  ])
   await fetchDestinationsForDashboard()
   await fetchLatestReports()
   await fetchTotalReportsCount()
@@ -902,8 +934,8 @@ onUnmounted(() => {
   }
 
   &--clean {
-    background-color: #fffbeb;
-    border-color: #fde68a;
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
   }
 }
 
