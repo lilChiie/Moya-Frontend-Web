@@ -14,42 +14,35 @@ const props = defineProps({
   fallback: { type: String, default: '' },
 })
 
-const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
 const defaultFallback = computed(() => props.fallback || report1Img)
 const resolvedSrc = ref('')
 const retryCount = ref(0)
 
 function resolveUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return defaultFallback.value
-  let target = rawUrl.trim()
+  const target = rawUrl.trim()
   if (!target) return defaultFallback.value
 
-  // Data URLs, Blobs, and local bundled assets
+  // Data URLs, Blobs, and bundled local assets
   if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
     return target
   }
 
-  // Upgrade http:// to https:// for ngrok to prevent Mixed Content errors on Vercel
-  if (target.startsWith('http://') && target.includes('ngrok')) {
-    target = target.replace('http://', 'https://')
+  // Strip full ngrok domain so request always goes through proxy (/static/...)
+  // Locally: handled by Vite devServer proxy (which injects ngrok-skip-browser-warning)
+  // On Vercel: handled by /api/static-proxy serverless function
+  if (target.includes('/static/')) {
+    return target.substring(target.indexOf('/static/'))
+  }
+  if (target.includes('/uploads/')) {
+    return `/static${target.substring(target.indexOf('/uploads/'))}`
   }
 
-  // If it's a relative path, convert to full ngrok HTTPS URL
-  if (target.startsWith('/static/')) {
-    target = `${NGROK_HOST}${target}`
-  } else if (target.startsWith('/uploads/')) {
-    target = `${NGROK_HOST}/static${target}`
-  } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
-    target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
+  if (target.startsWith('http://') || target.startsWith('https://')) {
+    return target
   }
 
-  // Ensure ngrok skip browser warning is present
-  if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
-    const sep = target.includes('?') ? '&' : '?'
-    target = `${target}${sep}ngrok-skip-browser-warning=true`
-  }
-
-  return target
+  return `/static/${target.replace(/^\/+/, '')}`
 }
 
 function load(url) {
@@ -66,17 +59,15 @@ watch(() => props.src, load, { immediate: true })
 function onError() {
   if (retryCount.value === 0) {
     retryCount.value = 1
-    // Fallback attempt 1: Try relative /static path with skip warning
     if (props.src && (props.src.includes('/static/') || props.src.includes('/uploads/'))) {
       const idx = props.src.indexOf('/static/') !== -1 ? props.src.indexOf('/static/') : props.src.indexOf('/uploads/')
       const rel = props.src.substring(idx)
-      const cleanRel = rel.startsWith('/uploads/') ? `/static${rel}` : rel
-      resolvedSrc.value = `${cleanRel}${cleanRel.includes('?') ? '&' : '?'}ngrok-skip-browser-warning=true`
+      resolvedSrc.value = rel.startsWith('/uploads/') ? `/static${rel}` : rel
       return
     }
   }
 
-  // Fallback attempt 2: Fallback to placeholder image
+  // Fallback to placeholder image
   resolvedSrc.value = defaultFallback.value
 }
 </script>

@@ -465,31 +465,24 @@ function goToDetail(row) {
   router.push(`/admin/monitoring/${row.id}`)
 }
 
-const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
-
 function formatReportImage(url) {
   if (!url || typeof url !== 'string') return report1Img
-  let target = url.trim()
+  const target = url.trim()
   if (!target) return report1Img
 
   if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
     return target
   }
-  if (target.startsWith('http://') && target.includes('ngrok')) {
-    target = target.replace('http://', 'https://')
+  if (target.includes('/static/')) {
+    return target.substring(target.indexOf('/static/'))
   }
-  if (target.startsWith('/static/')) {
-    target = `${NGROK_HOST}${target}`
-  } else if (target.startsWith('/uploads/')) {
-    target = `${NGROK_HOST}/static${target}`
-  } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
-    target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
+  if (target.includes('/uploads/')) {
+    return `/static${target.substring(target.indexOf('/uploads/'))}`
   }
-  if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
-    const sep = target.includes('?') ? '&' : '?'
-    target = `${target}${sep}ngrok-skip-browser-warning=true`
+  if (target.startsWith('http://') || target.startsWith('https://')) {
+    return target
   }
-  return target
+  return `/static/${target.replace(/^\/+/, '')}`
 }
 
 function formatStatus(st) {

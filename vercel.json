@@ -8,11 +8,11 @@
     },
     {
       "source": "/static/(.*)",
-      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/$1?ngrok-skip-browser-warning=true"
+      "destination": "/api/static-proxy?path=$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/uploads/$1?ngrok-skip-browser-warning=true"
+      "destination": "/api/static-proxy?path=uploads/$1"
     },
     {
       "source": "/((?!api|static|uploads|assets|favicon.ico).*)",
