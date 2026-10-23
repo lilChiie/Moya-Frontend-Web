@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="260" rx="12" fill="url(#bgGrad)" />
+  <g transform="translate(160, 75)">
+    <!-- Photo frame & landscape icon -->
+    <rect x="0" y="0" width="80" height="60" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2.5" />
+    <!-- Sun / Circle -->
+    <circle cx="24" cy="22" r="7" fill="#94A3B8" />
+    <!-- Mountains / Landscape -->
+    <path d="M6 52 L32 28 L48 42 L60 32 L74 52 Z" fill="#94A3B8" opacity="0.85" />
+  </g>
+  <text x="200" y="172" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#64748B" letter-spacing="0.2">
+    No Photo Available
+  </text>
+  <text x="200" y="194" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="500" fill="#94A3B8">
+    Photo has not been uploaded
+  </text>
+</svg>

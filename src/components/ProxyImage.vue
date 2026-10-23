@@ -4,7 +4,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import report1Img from 'assets/report1.jpg'
+import placeholderImg from 'assets/placeholder.svg'
 
 defineOptions({ inheritAttrs: false })
 
@@ -14,7 +14,7 @@ const props = defineProps({
   fallback: { type: String, default: '' },
 })
 
-const defaultFallback = computed(() => props.fallback || report1Img)
+const defaultFallback = computed(() => props.fallback || placeholderImg)
 const resolvedSrc = ref('')
 const retryCount = ref(0)
 

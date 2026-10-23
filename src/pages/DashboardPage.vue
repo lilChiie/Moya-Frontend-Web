@@ -153,7 +153,7 @@
               >
                 <div class="row items-center q-gutter-x-sm">
                   <div class="img-wrapper">
-                    <ProxyImage :src="item.image" :alt="item.title" :fallback="report1Img" class="report-img" />
+                    <ProxyImage :src="item.image" :alt="item.title" :fallback="placeholderImg" class="report-img" />
                   </div>
                   <div class="column justify-center">
                     <div
@@ -194,7 +194,7 @@ import 'leaflet/dist/leaflet.css'
 import apexchart from 'vue3-apexcharts'
 import ProxyImage from 'components/ProxyImage.vue'
 
-import report1Img from 'assets/report1.jpg'
+import placeholderImg from 'assets/placeholder.svg'
 
 const router = useRouter()
 const cleanStore = useCleanReportsStore()
@@ -465,9 +465,9 @@ function formatDashboardDate(dateStr) {
 }
 
 function formatDashboardImage(url) {
-  if (!url || typeof url !== 'string') return report1Img
+  if (!url || typeof url !== 'string') return placeholderImg
   const target = url.trim()
-  if (!target) return report1Img
+  if (!target) return placeholderImg
 
   if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
     return target

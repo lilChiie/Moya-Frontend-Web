@@ -368,7 +368,7 @@ import { useQuasar } from 'quasar'
 import { useCleanReportsStore } from 'src/stores/cleanReports'
 import { api } from 'boot/axios'
 import ProxyImage from 'components/ProxyImage.vue'
-import report1Img from 'assets/report1.jpg'
+import placeholderImg from 'assets/placeholder.svg'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -466,9 +466,9 @@ function goToDetail(row) {
 }
 
 function formatReportImage(url) {
-  if (!url || typeof url !== 'string') return report1Img
+  if (!url || typeof url !== 'string') return placeholderImg
   const target = url.trim()
-  if (!target) return report1Img
+  if (!target) return placeholderImg
 
   if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
     return target
