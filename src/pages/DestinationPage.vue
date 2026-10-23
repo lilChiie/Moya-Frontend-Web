@@ -966,24 +966,31 @@ function isUrl(str) {
   return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('data:image/') || str.startsWith('/')
 }
 
+const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
+
 function formatImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
+  let target = url.trim()
+  if (!target) return ''
 
-  if (
-    (url.startsWith('http://') || url.startsWith('https://')) &&
-    url.includes('ngrok') &&
-    url.includes('/static/')
-  ) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath 
+  if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
+    return target
   }
-
-  if (url.includes('/static/')) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath
+  if (target.startsWith('http://') && target.includes('ngrok')) {
+    target = target.replace('http://', 'https://')
   }
-
-  return url
+  if (target.startsWith('/static/')) {
+    target = `${NGROK_HOST}${target}`
+  } else if (target.startsWith('/uploads/')) {
+    target = `${NGROK_HOST}/static${target}`
+  } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
+    target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
+  }
+  if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
+    const sep = target.includes('?') ? '&' : '?'
+    target = `${target}${sep}ngrok-skip-browser-warning=true`
+  }
+  return target
 }
 
 const filteredDestinations = computed(() => {

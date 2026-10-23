@@ -390,14 +390,41 @@ const feedbackConfig = ref({
 })
 
 const batamBoundaryCoordinates = [
-  [1.18, 103.9],
-  [1.2, 104.16],
-  [1.08, 104.22],
-  [0.85, 104.18],
-  [0.72, 104.12],
-  [0.72, 104.05],
-  [0.88, 103.95],
-  [1.05, 103.88],
+  // --- Bagian Utara Pulau Batam ---
+  [1.205, 104.020],
+  [1.215, 104.070],
+  [1.205, 104.135],
+  [1.185, 104.180], // Nongsa
+  // --- Sisi Timur Pulau Batam ---
+  [1.140, 104.185], // Batu Besar
+  [1.080, 104.170], // Kabil
+  [1.020, 104.145], // Telaga Punggur
+  // --- Lekukan Penghubung Batam - Rempang ---
+  [0.960, 104.165],
+  // --- Sisi Timur Pulau Rempang ---
+  [0.890, 104.230], // Sembulang
+  [0.830, 104.270],
+  // --- Sisi Timur Pulau Galang ---
+  [0.760, 104.300],
+  [0.690, 104.325],
+  // --- Sisi Timur & Ujung Selatan Galang Baru ---
+  [0.630, 104.330],
+  [0.580, 104.310], // Ujung selatan Barelang
+  [0.570, 104.280],
+  [0.595, 104.250],
+  // --- Sisi Barat Pulau Galang Baru & Galang ---
+  [0.660, 104.225],
+  [0.730, 104.180],
+  [0.800, 104.140],
+  // --- Sisi Barat Pulau Rempang ---
+  [0.870, 104.090],
+  [0.940, 104.040],
+  // --- Sisi Barat Pulau Batam (Sagulung, Tg Uncang, Sekupang, Tg Pinggir) ---
+  [1.000, 103.970],
+  [1.060, 103.900], // Tanjung Uncang
+  [1.120, 103.880], // Sekupang
+  [1.170, 103.910], // Tanjung Pinggir
+  [1.200, 103.960], // Batu Ampar / Harbour Bay barat
 ]
 
 const rawAccessibilityList = ref([])
@@ -709,8 +736,8 @@ onMounted(() => {
   fetchCategoryOptions()
 
   map = L.map('destination-map', {
-    center: [1.06, 104.04],
-    zoom: 11,
+    center: [0.98, 104.10],
+    zoom: 10,
     zoomControl: true,
   })
 
@@ -719,12 +746,18 @@ onMounted(() => {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
 
-  L.polygon(batamBoundaryCoordinates, {
+  const batamPolygon = L.polygon(batamBoundaryCoordinates, {
     color: '#EF4444',
     weight: 2,
     fillColor: '#EF4444',
     fillOpacity: 0.05,
   }).addTo(map)
+
+  try {
+    map.fitBounds(batamPolygon.getBounds(), { padding: [20, 20] })
+  } catch {
+    // Ignore fitBounds error
+  }
 
   updateMarkerPosition(1.06, 104.04)
 

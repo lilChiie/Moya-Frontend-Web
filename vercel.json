@@ -11,7 +11,11 @@
       "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/$1?ngrok-skip-browser-warning=true"
     },
     {
-      "source": "/((?!api|static|assets|favicon.ico).*)",
+      "source": "/uploads/(.*)",
+      "destination": "https://coronary-moonstone-grain.ngrok-free.dev/static/uploads/$1?ngrok-skip-browser-warning=true"
+    },
+    {
+      "source": "/((?!api|static|uploads|assets|favicon.ico).*)",
       "destination": "/index.html"
     }
   ],
@@ -27,6 +31,15 @@
     },
     {
       "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/uploads/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

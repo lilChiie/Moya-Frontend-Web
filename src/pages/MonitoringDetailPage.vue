@@ -20,7 +20,7 @@
             Report Details & Clean Proofs
           </h1>
           <p class="text-grey-7 q-mt-xs q-mb-none font-subtitle">
-            Condition details for Report  at {{ currentReport?.location || 'Destination' }} and clean proofs from users
+            Condition details for {{ currentReport?.location || 'Destination' }} and clean proofs from users
           </p>
         </div>
 
@@ -287,7 +287,7 @@
       <q-card style="width: 480px; max-width: 90vw" class="rounded-borders-lg bg-white overflow-hidden">
         <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
           <div class="text-subtitle1 text-weight-bold">
-            Edit Status for Report #{{ currentReport?.id }}
+            Edit Handling Status
           </div>
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
@@ -441,14 +441,31 @@ function openEditModal() {
   showEditModalState.value = true
 }
 
+const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
+
 function formatReportImage(url) {
   if (!url || typeof url !== 'string') return report1Img
-  if ((url.startsWith('http://') || url.startsWith('https://')) && url.includes('ngrok') && url.includes('/static/')) {
-    return url.substring(url.indexOf('/static/'))
+  let target = url.trim()
+  if (!target) return report1Img
+
+  if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
+    return target
   }
-  if (url.includes('/static/')) return url.substring(url.indexOf('/static/'))
-  if (url.startsWith('data:image/') || url.startsWith('http://') || url.startsWith('https://')) return url
-  return url.startsWith('/') ? url : `/${url}`
+  if (target.startsWith('http://') && target.includes('ngrok')) {
+    target = target.replace('http://', 'https://')
+  }
+  if (target.startsWith('/static/')) {
+    target = `${NGROK_HOST}${target}`
+  } else if (target.startsWith('/uploads/')) {
+    target = `${NGROK_HOST}/static${target}`
+  } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
+    target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
+  }
+  if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
+    const sep = target.includes('?') ? '&' : '?'
+    target = `${target}${sep}ngrok-skip-browser-warning=true`
+  }
+  return target
 }
 
 function formatStatus(st) {

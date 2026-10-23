@@ -464,31 +464,31 @@ function formatDashboardDate(dateStr) {
   return str
 }
 
+const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
+
 function formatDashboardImage(url) {
   if (!url || typeof url !== 'string') return report1Img
+  let target = url.trim()
+  if (!target) return report1Img
 
-  if (
-    (url.startsWith('http://') || url.startsWith('https://')) &&
-    url.includes('ngrok') &&
-    url.includes('/static/')
-  ) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath
+  if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
+    return target
   }
-
-  if (url.includes('/static/')) {
-    const staticPath = url.substring(url.indexOf('/static/'))
-    return staticPath
+  if (target.startsWith('http://') && target.includes('ngrok')) {
+    target = target.replace('http://', 'https://')
   }
-
-  if (url.startsWith('data:image/')) {
-    return url
+  if (target.startsWith('/static/')) {
+    target = `${NGROK_HOST}${target}`
+  } else if (target.startsWith('/uploads/')) {
+    target = `${NGROK_HOST}/static${target}`
+  } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
+    target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
   }
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url
+  if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
+    const sep = target.includes('?') ? '&' : '?'
+    target = `${target}${sep}ngrok-skip-browser-warning=true`
   }
-
-  return url.startsWith('/') ? url : `/${url}`
+  return target
 }
 
 function resolveDashboardLocation(item) {
@@ -672,14 +672,41 @@ function renderMapSpots() {
 }
 
 const batamBoundaryCoordinates = [
-  [1.18, 103.9],
-  [1.2, 104.16],
-  [1.08, 104.22],
-  [0.85, 104.18],
-  [0.72, 104.12],
-  [0.72, 104.05],
-  [0.88, 103.95],
-  [1.05, 103.88],
+  // --- Bagian Utara Pulau Batam ---
+  [1.205, 104.020],
+  [1.215, 104.070],
+  [1.205, 104.135],
+  [1.185, 104.180], // Nongsa
+  // --- Sisi Timur Pulau Batam ---
+  [1.140, 104.185], // Batu Besar
+  [1.080, 104.170], // Kabil
+  [1.020, 104.145], // Telaga Punggur
+  // --- Lekukan Penghubung Batam - Rempang ---
+  [0.960, 104.165],
+  // --- Sisi Timur Pulau Rempang ---
+  [0.890, 104.230], // Sembulang
+  [0.830, 104.270],
+  // --- Sisi Timur Pulau Galang ---
+  [0.760, 104.300],
+  [0.690, 104.325],
+  // --- Sisi Timur & Ujung Selatan Galang Baru ---
+  [0.630, 104.330],
+  [0.580, 104.310], // Ujung selatan Barelang
+  [0.570, 104.280],
+  [0.595, 104.250],
+  // --- Sisi Barat Pulau Galang Baru & Galang ---
+  [0.660, 104.225],
+  [0.730, 104.180],
+  [0.800, 104.140],
+  // --- Sisi Barat Pulau Rempang ---
+  [0.870, 104.090],
+  [0.940, 104.040],
+  // --- Sisi Barat Pulau Batam (Sagulung, Tg Uncang, Sekupang, Tg Pinggir) ---
+  [1.000, 103.970],
+  [1.060, 103.900], // Tanjung Uncang
+  [1.120, 103.880], // Sekupang
+  [1.170, 103.910], // Tanjung Pinggir
+  [1.200, 103.960], // Batu Ampar / Harbour Bay barat
 ]
 
 const locationMarkers = []
@@ -716,8 +743,8 @@ onMounted(async () => {
   await fetchSpots()
 
   map = L.map('realtime-map', {
-    center: [1.06, 104.04],
-    zoom: 11,
+    center: [0.90, 104.10],
+    zoom: 10,
     zoomControl: true,
   })
 
@@ -726,7 +753,7 @@ onMounted(async () => {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
 
-  L.polygon(batamBoundaryCoordinates, {
+  const batamPolygon = L.polygon(batamBoundaryCoordinates, {
     color: '#EF4444',
     weight: 2,
     fillColor: '#EF4444',
@@ -734,6 +761,12 @@ onMounted(async () => {
   }).addTo(map)
 
   renderMapSpots()
+
+  try {
+    map.fitBounds(batamPolygon.getBounds(), { padding: [20, 20] })
+  } catch {
+    // Ignore fitBounds error
+  }
 })
 
 onUnmounted(() => {

@@ -40,18 +40,31 @@ export const useCleanReportsStore = defineStore('cleanReports', () => {
     }
   }
 
+  const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
+
   function formatImageUrl(url) {
-    if (!url) return ''
-    if (url.includes('/static/')) {
-      return url.substring(url.indexOf('/static/'))
+    if (!url || typeof url !== 'string') return ''
+    let target = url.trim()
+    if (!target) return ''
+
+    if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
+      return target
     }
-    if (url.includes('/uploads/')) {
-      return url.substring(url.indexOf('/uploads/'))
+    if (target.startsWith('http://') && target.includes('ngrok')) {
+      target = target.replace('http://', 'https://')
     }
-    if (url.startsWith('http://') && url.includes('ngrok')) {
-      return url.replace('http://', 'https://')
+    if (target.startsWith('/static/')) {
+      target = `${NGROK_HOST}${target}`
+    } else if (target.startsWith('/uploads/')) {
+      target = `${NGROK_HOST}/static${target}`
+    } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
+      target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
     }
-    return url
+    if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
+      const sep = target.includes('?') ? '&' : '?'
+      target = `${target}${sep}ngrok-skip-browser-warning=true`
+    }
+    return target
   }
 
   // Fetch clean reports from backend API

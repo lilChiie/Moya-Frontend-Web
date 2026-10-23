@@ -18,7 +18,7 @@
         <div class="col-12 col-sm-7 col-md-5">
           <q-input
             v-model="filterSearch"
-            placeholder="Search location or report ID..."
+            placeholder="Search location or notes..."
             dense
             outlined
             bg-color="white"
@@ -70,13 +70,10 @@
             </q-td>
           </template>
 
-          <!-- Location & Report ID -->
+          <!-- Location -->
           <template #body-cell-location="props">
             <q-td :props="props">
               <div class="text-weight-bold text-grey-9">{{ props.row.location }}</div>
-              <div class="text-caption text-grey-6 text-weight-medium">
-                Report ID: #{{ props.row.id }}
-              </div>
             </q-td>
           </template>
 
@@ -262,9 +259,6 @@
                   </div>
                   <div class="column">
                     <span class="text-subtitle2 text-weight-bold text-grey-9">{{ props.row.location }}</span>
-                    <span class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px">
-                      Report ID: #{{ props.row.id }}
-                    </span>
                     <span class="text-caption text-grey-6" style="font-size: 11px">
                       {{ formatDateTime(props.row.timestamp) }}
                     </span>
@@ -308,7 +302,7 @@
       <q-card style="width: 480px; max-width: 90vw" class="rounded-borders-lg bg-white overflow-hidden">
         <q-card-section class="row items-center justify-between bg-primary text-white q-py-sm">
           <div class="text-subtitle1 text-weight-bold">
-            Edit Status for Report #{{ editingReport?.id }}
+            Edit Handling Status
           </div>
           <q-btn flat round dense icon="close" v-close-popup color="white" />
         </q-card-section>
@@ -471,14 +465,31 @@ function goToDetail(row) {
   router.push(`/admin/monitoring/${row.id}`)
 }
 
+const NGROK_HOST = 'https://coronary-moonstone-grain.ngrok-free.dev'
+
 function formatReportImage(url) {
   if (!url || typeof url !== 'string') return report1Img
-  if ((url.startsWith('http://') || url.startsWith('https://')) && url.includes('ngrok') && url.includes('/static/')) {
-    return url.substring(url.indexOf('/static/'))
+  let target = url.trim()
+  if (!target) return report1Img
+
+  if (target.startsWith('data:') || target.startsWith('blob:') || target.startsWith('/assets/')) {
+    return target
   }
-  if (url.includes('/static/')) return url.substring(url.indexOf('/static/'))
-  if (url.startsWith('data:image/') || url.startsWith('http://') || url.startsWith('https://')) return url
-  return url.startsWith('/') ? url : `/${url}`
+  if (target.startsWith('http://') && target.includes('ngrok')) {
+    target = target.replace('http://', 'https://')
+  }
+  if (target.startsWith('/static/')) {
+    target = `${NGROK_HOST}${target}`
+  } else if (target.startsWith('/uploads/')) {
+    target = `${NGROK_HOST}/static${target}`
+  } else if (!target.startsWith('http://') && !target.startsWith('https://')) {
+    target = `${NGROK_HOST}/static/${target.replace(/^\/+/, '')}`
+  }
+  if (target.includes('ngrok') && !target.includes('ngrok-skip-browser-warning')) {
+    const sep = target.includes('?') ? '&' : '?'
+    target = `${target}${sep}ngrok-skip-browser-warning=true`
+  }
+  return target
 }
 
 function formatStatus(st) {
